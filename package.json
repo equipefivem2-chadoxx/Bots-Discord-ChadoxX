@@ -1,0 +1,15 @@
+{
+  "name": "irisfa-ecosystem",
+  "version": "1.0.0",
+  "description": "Gestionnaire centralisé des bots IrisFA",
+  "main": "start.js",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
