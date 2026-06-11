@@ -36,9 +36,11 @@ async function sendWebhook(payload) {
 const startBot = (bot) => {
     console.log(`🚀 Lancement de ${bot.name}...`);
 
+    // CORRECTION : Ajout de l'env pour transmettre les tokens de Railway aux bots
     const child = spawn(process.execPath, [bot.file], {
         cwd: path.join(__dirname, bot.dir),
-        stdio: ['inherit', 'inherit', 'pipe']
+        stdio: ['inherit', 'inherit', 'pipe'],
+        env: { ...process.env } 
     });
 
     let errorBuffer = "";
@@ -46,17 +48,13 @@ const startBot = (bot) => {
     // 📛 Capture erreurs
     child.stderr.on('data', (data) => {
         const errorMessage = data.toString();
-
         errorBuffer += errorMessage;
-
         console.error(`❌ [${bot.name}] ${errorMessage}`);
     });
 
     // 💥 Si crash
     child.on('close', async (code) => {
-
         if (code !== 0 && code !== null) {
-
             console.log(`⚠️ ${bot.name} crash (Code: ${code})`);
 
             const payload = {
@@ -67,20 +65,9 @@ const startBot = (bot) => {
                         color: 0xff0000,
                         description: `Le bot **${bot.name}** vient de crash.`,
                         fields: [
-                            {
-                                name: "📂 Dossier",
-                                value: `\`${bot.dir}\``,
-                                inline: true
-                            },
-                            {
-                                name: "🔢 Code",
-                                value: `\`${code}\``,
-                                inline: true
-                            },
-                            {
-                                name: "💬 Erreur",
-                                value: `\`\`\`js\n${errorBuffer.slice(-1000) || "Aucune erreur"}\n\`\`\``
-                            }
+                            { name: "📂 Dossier", value: `\`${bot.dir}\``, inline: true },
+                            { name: "🔢 Code", value: `\`${code}\``, inline: true },
+                            { name: "💬 Erreur", value: `\`\`\`js\n${errorBuffer.slice(-1000) || "Aucune erreur"}\n\`\`\`` }
                         ],
                         timestamp: new Date()
                     }
@@ -93,20 +80,14 @@ const startBot = (bot) => {
             setTimeout(() => {
                 startBot(bot);
             }, 5000);
-
         } else {
-
             console.log(`✅ ${bot.name} arrêté proprement.`);
-
         }
-
     });
 
     // ❌ Erreur spawn
     child.on('error', async (err) => {
-
         console.error(`❌ Impossible de lancer ${bot.name} :`, err.message);
-
         await sendWebhook({
             username: "IrisFA Monitor",
             embeds: [
@@ -115,23 +96,17 @@ const startBot = (bot) => {
                     color: 0xff0000,
                     description: `Impossible de lancer le bot.`,
                     fields: [
-                        {
-                            name: "💬 Erreur",
-                            value: `\`\`\`${err.message}\`\`\``
-                        }
+                        { name: "💬 Erreur", value: `\`\`\`${err.message}\`\`\`` }
                     ],
                     timestamp: new Date()
                 }
             ]
         });
-
     });
-
 };
 
 // 🚀 Démarrage global
 console.log("🚀 Démarrage du gestionnaire IrisFA...");
-
 bots.forEach(bot => {
     startBot(bot);
 });
