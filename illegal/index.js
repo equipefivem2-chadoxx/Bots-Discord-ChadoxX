@@ -1,8 +1,5 @@
-//require('dotenv').config();
-
 const fs = require('fs');
 const path = require('path');
-
 const {
     Client,
     Collection,
@@ -12,6 +9,10 @@ const {
     Routes
 } = require('discord.js');
 
+// 🔄 Chargement "intelligent" : local (tokens.js) ou Railway (process.env)
+const tokensPath = path.join(__dirname, '../tokens.js');
+const tokens = fs.existsSync(tokensPath) ? require(tokensPath) : process.env;
+
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
 });
@@ -20,10 +21,7 @@ client.commands = new Collection();
 
 // 📂 Chargement commandes
 const commandsPath = path.join(__dirname, 'commands');
-
-const commandFiles = fs
-    .readdirSync(commandsPath)
-    .filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
@@ -38,18 +36,16 @@ async function deployCommands() {
         commands.push(command.data.toJSON());
     }
 
-    // CORRIGÉ : Utilisation de TOKEN_illegal
-    const rest = new REST({ version: '10' }).setToken(process.env.TOKEN_illegal);
+    // Utilisation dynamique du token
+    const rest = new REST({ version: '10' }).setToken(tokens.TOKEN_ILLEGAL);
 
     try {
         await rest.put(
             Routes.applicationGuildCommands(
-                process.env.CLIENT_ID,
-                process.env.GUILD_ID
+                tokens.CLIENT_ID || process.env.CLIENT_ID,
+                tokens.GUILD_ID || process.env.GUILD_ID
             ),
-            {
-                body: commands
-            }
+            { body: commands }
         );
     } catch (error) {
         console.error('❌ Erreur déploiement commandes :', error);
@@ -65,43 +61,26 @@ client.once(Events.ClientReady, async () => {
 // 🎮 Interactions
 client.on(Events.InteractionCreate, async interaction => {
     try {
-        // 💬 Slash Commands
         if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
             await command.execute(interaction);
-        }
-        // 🔘 Boutons
-        else if (interaction.isButton()) {
+        } else if (interaction.isButton()) {
             for (const command of client.commands.values()) {
-                if (typeof command.button === 'function') {
-                    await command.button(interaction);
-                }
+                if (typeof command.button === 'function') await command.button(interaction);
             }
-        }
-        // 📝 Modals
-        else if (interaction.isModalSubmit()) {
+        } else if (interaction.isModalSubmit()) {
             for (const command of client.commands.values()) {
-                if (typeof command.modal === 'function') {
-                    await command.modal(interaction);
-                }
+                if (typeof command.modal === 'function') await command.modal(interaction);
             }
         }
     } catch (error) {
         console.error(error);
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({
-                content: '❌ Une erreur est survenue.',
-                ephemeral: true
-            }).catch(() => {});
-        } else {
-            await interaction.reply({
-                content: '❌ Une erreur est survenue.',
-                ephemeral: true
-            }).catch(() => {});
-        }
+        const payload = { content: '❌ Une erreur est survenue.', ephemeral: true };
+        if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
+        else await interaction.reply(payload).catch(() => {});
     }
 });
 
-// CORRIGÉ : Utilisation de TOKEN_illegal
-client.login(process.env.TOKEN_illegal);
+// Connexion dynamique
+client.login(tokens.TOKEN_ILLEGAL);

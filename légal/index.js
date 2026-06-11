@@ -1,4 +1,10 @@
+const fs = require('fs');
+const path = require('path');
 const { Client, GatewayIntentBits, Events } = require('discord.js');
+
+// 🔄 Chargement "intelligent" : local (tokens.js) ou Railway (process.env)
+const tokensPath = path.join(__dirname, '../tokens.js');
+const tokens = fs.existsSync(tokensPath) ? require(tokensPath) : process.env;
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
@@ -18,5 +24,5 @@ process.on('uncaughtException', (err) => {
     console.error('[LEGAL] Uncaught Exception:', err);
 });
 
-// CORRIGÉ : Utilisation de TOKEN_légal
-client.login(process.env.TOKEN_légal);
+// Utilisation de la clé TOKEN_LEGAL (sans accent pour la compatibilité)
+client.login(tokens.TOKEN_LEGAL);
