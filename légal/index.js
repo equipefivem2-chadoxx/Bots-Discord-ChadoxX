@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 
 const client = new Client({
@@ -20,4 +18,5 @@ process.on('uncaughtException', (err) => {
     console.error('[LEGAL] Uncaught Exception:', err);
 });
 
-client.login(process.env.TOKEN);
+// CORRIGÉ : Utilisation de TOKEN_légal
+client.login(process.env.TOKEN_légal);

@@ -26,30 +26,22 @@ const commandFiles = fs
     .filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-
     const filePath = path.join(commandsPath, file);
-
     const command = require(filePath);
-
     client.commands.set(command.data.name, command);
-
 }
 
 // 🚀 Déploiement automatique slash commands
 async function deployCommands() {
-
     const commands = [];
-
     for (const command of client.commands.values()) {
-
         commands.push(command.data.toJSON());
-
     }
 
-    const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+    // CORRIGÉ : Utilisation de TOKEN_illegal
+    const rest = new REST({ version: '10' }).setToken(process.env.TOKEN_illegal);
 
     try {
-
         await rest.put(
             Routes.applicationGuildCommands(
                 process.env.CLIENT_ID,
@@ -59,92 +51,57 @@ async function deployCommands() {
                 body: commands
             }
         );
-
     } catch (error) {
-
         console.error('❌ Erreur déploiement commandes :', error);
-
     }
-
 }
 
 // ✅ Bot prêt
 client.once(Events.ClientReady, async () => {
-
     await deployCommands();
-
     console.log(`[ILLEGAL] ${client.user.tag} connecté`);
-
 });
 
 // 🎮 Interactions
 client.on(Events.InteractionCreate, async interaction => {
-
     try {
-
         // 💬 Slash Commands
         if (interaction.isChatInputCommand()) {
-
             const command = client.commands.get(interaction.commandName);
-
             if (!command) return;
-
             await command.execute(interaction);
-
         }
-
         // 🔘 Boutons
         else if (interaction.isButton()) {
-
             for (const command of client.commands.values()) {
-
                 if (typeof command.button === 'function') {
-
                     await command.button(interaction);
-
                 }
-
             }
-
         }
-
         // 📝 Modals
         else if (interaction.isModalSubmit()) {
-
             for (const command of client.commands.values()) {
-
                 if (typeof command.modal === 'function') {
-
                     await command.modal(interaction);
-
                 }
-
             }
-
         }
-
     } catch (error) {
-
         console.error(error);
-
         if (interaction.replied || interaction.deferred) {
-
             await interaction.followUp({
                 content: '❌ Une erreur est survenue.',
                 ephemeral: true
             }).catch(() => {});
-
         } else {
-
             await interaction.reply({
                 content: '❌ Une erreur est survenue.',
                 ephemeral: true
             }).catch(() => {});
-
         }
-
     }
-
 });
 
-client.login(process.env.TOKEN);
+// CORRIGÉ : Utilisation de TOKEN_illegal
+client.login(process.env.TOKEN_illegal);
