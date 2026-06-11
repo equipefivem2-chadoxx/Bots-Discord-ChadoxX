@@ -1,36 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const {
-    Client,
-    Collection,
-    GatewayIntentBits,
-    Events,
-    REST,
-    Routes
-} = require('discord.js');
+// Chargement des tokens et de la config
+const tokens = fs.existsSync(path.join(__dirname, '../tokens.js')) ? require('../tokens.js') : process.env;
+const config = require('./config.json'); // <-- On charge la config locale
 
-// 🔄 Chargement "intelligent"
-const tokensPath = path.join(__dirname, '../tokens.js');
-const tokens = fs.existsSync(tokensPath) ? require(tokensPath) : process.env;
+// ... reste du code inchangé jusqu'à la fonction deployCommands ...
 
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds]
-});
-
-client.commands = new Collection();
-
-// 📂 Chargement commandes sécurisé
-const commandsPath = path.join(__dirname, 'commands');
-if (fs.existsSync(commandsPath)) {
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js') && file !== 'index.js');
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const command = require(filePath);
-        client.commands.set(command.data.name, command);
-    }
-}
-
-// 🚀 Déploiement automatique
 async function deployCommands() {
     const commands = Array.from(client.commands.values()).map(c => c.data.toJSON());
     const token = tokens.TOKEN_ILLEGAL || process.env.TOKEN_ILLEGAL;
@@ -42,42 +17,13 @@ async function deployCommands() {
     try {
         await rest.put(
             Routes.applicationGuildCommands(
-                tokens.CLIENT_ID || process.env.CLIENT_ID,
-                tokens.GUILD_ID || process.env.GUILD_ID
+                config.CLIENT_ID, // <-- Lecture via config.json
+                config.GUILD_ID   // <-- Lecture via config.json
             ),
             { body: commands }
         );
+        console.log("✅ Commandes slash déployées pour ILLEGAL");
     } catch (error) {
         console.error('❌ Erreur déploiement commandes :', error);
     }
-}
-
-client.once(Events.ClientReady, async () => {
-    await deployCommands();
-    console.log(`[ILLEGAL] ${client.user.tag} connecté`);
-});
-
-// 🎮 Interactions
-client.on(Events.InteractionCreate, async interaction => {
-    try {
-        if (interaction.isChatInputCommand()) {
-            const command = client.commands.get(interaction.commandName);
-            if (command) await command.execute(interaction);
-        } else if (interaction.isButton() || interaction.isModalSubmit()) {
-            for (const command of client.commands.values()) {
-                if (interaction.isButton() && typeof command.button === 'function') await command.button(interaction);
-                if (interaction.isModalSubmit() && typeof command.modal === 'function') await command.modal(interaction);
-            }
-        }
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-// Connexion sécurisée
-const loginToken = tokens.TOKEN_ILLEGAL || process.env.TOKEN_ILLEGAL;
-if (loginToken) {
-    client.login(loginToken);
-} else {
-    console.error("❌ ERREUR FATALE : Token ILLEGAL introuvable.");
 }
