@@ -9,7 +9,7 @@ const {
     Routes
 } = require('discord.js');
 
-// 🔄 Chargement "intelligent" : local (tokens.js) ou Railway (process.env)
+// 🔄 Chargement "intelligent"
 const tokensPath = path.join(__dirname, '../tokens.js');
 const tokens = fs.existsSync(tokensPath) ? require(tokensPath) : process.env;
 
@@ -19,25 +19,25 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// 📂 Chargement commandes
+// 📂 Chargement commandes sécurisé
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
-    client.commands.set(command.data.name, command);
+if (fs.existsSync(commandsPath)) {
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js') && file !== 'index.js');
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        client.commands.set(command.data.name, command);
+    }
 }
 
-// 🚀 Déploiement automatique slash commands
+// 🚀 Déploiement automatique
 async function deployCommands() {
-    const commands = [];
-    for (const command of client.commands.values()) {
-        commands.push(command.data.toJSON());
-    }
+    const commands = Array.from(client.commands.values()).map(c => c.data.toJSON());
+    const token = tokens.TOKEN_ILLEGAL || process.env.TOKEN_ILLEGAL;
+    
+    if (!token) return console.error("❌ Token ILLEGAL manquant !");
 
-    // Utilisation dynamique du token
-    const rest = new REST({ version: '10' }).setToken(tokens.TOKEN_ILLEGAL);
+    const rest = new REST({ version: '10' }).setToken(token);
 
     try {
         await rest.put(
@@ -52,7 +52,6 @@ async function deployCommands() {
     }
 }
 
-// ✅ Bot prêt
 client.once(Events.ClientReady, async () => {
     await deployCommands();
     console.log(`[ILLEGAL] ${client.user.tag} connecté`);
@@ -63,24 +62,22 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
         if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);
-            if (!command) return;
-            await command.execute(interaction);
-        } else if (interaction.isButton()) {
+            if (command) await command.execute(interaction);
+        } else if (interaction.isButton() || interaction.isModalSubmit()) {
             for (const command of client.commands.values()) {
-                if (typeof command.button === 'function') await command.button(interaction);
-            }
-        } else if (interaction.isModalSubmit()) {
-            for (const command of client.commands.values()) {
-                if (typeof command.modal === 'function') await command.modal(interaction);
+                if (interaction.isButton() && typeof command.button === 'function') await command.button(interaction);
+                if (interaction.isModalSubmit() && typeof command.modal === 'function') await command.modal(interaction);
             }
         }
     } catch (error) {
         console.error(error);
-        const payload = { content: '❌ Une erreur est survenue.', ephemeral: true };
-        if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
-        else await interaction.reply(payload).catch(() => {});
     }
 });
 
-// Connexion dynamique
-client.login(tokens.TOKEN_ILLEGAL);
+// Connexion sécurisée
+const loginToken = tokens.TOKEN_ILLEGAL || process.env.TOKEN_ILLEGAL;
+if (loginToken) {
+    client.login(loginToken);
+} else {
+    console.error("❌ ERREUR FATALE : Token ILLEGAL introuvable.");
+}

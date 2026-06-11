@@ -24,5 +24,11 @@ process.on('uncaughtException', (err) => {
     console.error('[LEGAL] Uncaught Exception:', err);
 });
 
-// Utilisation de la clé TOKEN_LEGAL (sans accent pour la compatibilité)
-client.login(tokens.TOKEN_LEGAL);
+// Connexion sécurisée avec vérification
+const loginToken = tokens.TOKEN_LEGAL || process.env.TOKEN_LEGAL;
+
+if (loginToken) {
+    client.login(loginToken);
+} else {
+    console.error("❌ ERREUR FATALE : Token LÉGAL introuvable.");
+}
