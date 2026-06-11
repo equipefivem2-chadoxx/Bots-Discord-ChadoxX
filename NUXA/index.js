@@ -1,4 +1,10 @@
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+
+// 🔄 Chargement "intelligent" : local (tokens.js) ou Railway (process.env)
+const tokensPath = path.join(__dirname, '../tokens.js');
+const tokens = fs.existsSync(tokensPath) ? require(tokensPath) : process.env;
 
 const client = new Client({
     intents: [
@@ -11,8 +17,15 @@ const client = new Client({
 
 client.commands = new Collection();
 
+// Chargement des handlers
 require('./src/handlers/eventHandler')(client);
 require('./src/handlers/commandHandler')(client);
 
-// Vérifie bien que cette variable correspond au nom dans ton interface Railway
-client.login(process.env.DISCORD_TOKEN);
+// 🛡️ Connexion sécurisée
+const loginToken = tokens.TOKEN_NUXA || process.env.TOKEN_NUXA;
+
+if (loginToken) {
+    client.login(loginToken);
+} else {
+    console.error("❌ ERREUR FATALE : Token NUXA introuvable !");
+}
