@@ -1,4 +1,4 @@
-const { Events, AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const { Events, AttachmentBuilder } = require('discord.js');
 const audit = require('./auditLogs');
 
 module.exports = {
@@ -9,19 +9,19 @@ module.exports = {
         await interaction.reply("⏳ Archivage et fermeture en cours...");
 
         try {
-            // 1. Récupérer l'historique des messages
+            // 1. Récupération des messages
             const messages = await interaction.channel.messages.fetch({ limit: 100 });
             const transcript = messages.map(m => `[${m.createdAt.toLocaleString('fr-FR')}] ${m.author.tag}: ${m.content}`).reverse().join('\n');
             const attachment = new AttachmentBuilder(Buffer.from(transcript), { name: 'ticket.txt' });
 
-            // 2. Envoyer dans le salon d'archives
+            // 2. Envoi dans le salon d'archives (ID corrigé)
             const archiveChannel = interaction.client.channels.cache.get('1515666786660647054');
             const archiveMsg = await archiveChannel.send({ 
                 content: `📁 Archive du ticket **${interaction.channel.name}**`, 
                 files: [attachment] 
             });
 
-            // 3. LOG (Embed)
+            // 3. LOG Audit dans le salon de logs
             audit.sendAuditLog(interaction.client, 'CLOSE', {
                 user: `<@${interaction.user.id}>`,
                 channelName: interaction.channel.name,

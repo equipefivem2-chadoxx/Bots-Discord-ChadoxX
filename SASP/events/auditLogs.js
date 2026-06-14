@@ -31,9 +31,19 @@ module.exports = {
         const dbPath = path.join(__dirname, '../ticketHistory.json');
         let db = [];
         if (fs.existsSync(dbPath)) {
-            try { db = JSON.parse(fs.readFileSync(dbPath, 'utf8')); } catch (err) { db = []; }
+            try { 
+                const content = fs.readFileSync(dbPath, 'utf8');
+                db = content ? JSON.parse(content) : []; 
+            } catch (err) { db = []; }
         }
-        db.push({ userId, userName, channelName, action, archiveUrl, date: new Date().toLocaleString('fr-FR') });
+        db.push({ 
+            userId, 
+            userName, 
+            channelName, 
+            action, 
+            archiveLink: archiveUrl, 
+            date: new Date().toLocaleString('fr-FR') 
+        });
         fs.writeFileSync(dbPath, JSON.stringify(db, null, 4));
     }
 };
