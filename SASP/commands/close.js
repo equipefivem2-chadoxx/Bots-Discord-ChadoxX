@@ -4,29 +4,31 @@ module.exports = {
     name: 'close',
     description: 'Archive automatiquement et ferme le dossier d\'opération.',
     async execute(message, args) {
-        // Sécurité : Vérification de la catégorie
-        const opsCategory = '1489685701443452949';
-        if (message.channel.parentId !== opsCategory) {
-            return message.reply("❌ Cette commande est réservée uniquement aux dossiers d'opération.");
+        // ✨ MODIFICATION : Configuration des deux zones
+        const zones = {
+            '1489685701443452949': '1515666757732270110', // Catégorie SUD -> Archive SUD
+            '1515658721609646183': '1515666786660647054'  // Catégorie NORD -> Archive NORD
+        };
+
+        const archiveChannelId = zones[message.channel.parentId];
+
+        if (!archiveChannelId) {
+            return message.reply("❌ Cette commande est réservée uniquement aux dossiers d'opération (Sud et Nord).");
         }
 
-        // Sécurité : Vérification des droits
         if (!message.member.permissionsIn(message.channel).has(PermissionFlagsBits.ManageChannels)) {
             return message.reply("❌ Tu n'as pas la permission de fermer ce dossier.");
         }
 
-        // Vérification du salon des archives
-        const archiveChannelId = '1515666757732270110';
         const archiveChannel = message.client.channels.cache.get(archiveChannelId) || await message.client.channels.fetch(archiveChannelId).catch(() => null);
 
         if (!archiveChannel) {
-            return message.reply("❌ Impossible de trouver le salon des archives. Fermeture annulée pour éviter la perte de données.");
+            return message.reply("❌ Impossible de trouver le salon des archives. Fermeture annulée.");
         }
 
         await message.reply("⏳ **Fermeture en cours...** Génération de l'archive automatique avant suppression.");
 
         try {
-            // 1. Récupération des messages
             let messages = [];
             let lastId;
             while (true) {
@@ -39,7 +41,6 @@ module.exports = {
             }
             messages.reverse();
 
-            // 2. Formatage du texte pour l'archive
             let transcriptText = `=========================================\n`;
             transcriptText += `📁 ARCHIVE DU DOSSIER : ${message.channel.name}\n`;
             transcriptText += `📅 Date de fermeture : ${new Date().toLocaleString('fr-FR')}\n`;
@@ -54,10 +55,9 @@ module.exports = {
 
             const attachment = new AttachmentBuilder(Buffer.from(transcriptText, 'utf-8'), { name: `archive-${message.channel.name}.txt` });
 
-            // 3. L'Embed pour le salon des archives
             const embed = new EmbedBuilder()
                 .setTitle('💾 Archive d\'Opération')
-                .setColor('#E74C3C') // Rouge SASP
+                .setColor('#E74C3C')
                 .addFields(
                     { name: '📁 Dossier', value: message.channel.name, inline: true },
                     { name: '👤 Fermé par', value: `<@${message.author.id}>`, inline: true }
@@ -65,13 +65,12 @@ module.exports = {
                 .setFooter({ text: 'SASP - Bureau des Opérations' })
                 .setTimestamp();
 
-            // 4. Envoi de l'archive et suppression du salon
             await archiveChannel.send({ embeds: [embed], files: [attachment] });
             await message.channel.delete();
 
         } catch (error) {
-            console.error("Erreur lors de la fermeture/archivage :", error);
-            await message.channel.send("❌ Une erreur est survenue lors de l'archivage. Le dossier n'a pas été supprimé.");
+            console.error(error);
+            await message.channel.send("❌ Une erreur est survenue lors de l'archivage.");
         }
     }
 };

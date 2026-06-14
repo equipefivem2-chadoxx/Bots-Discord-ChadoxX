@@ -48,7 +48,7 @@ module.exports = {
                 .setDescription(
                     `Bienvenue dans ce dossier d'opération.\n⚠️ **A la fin vous devez le remplir dans son intégralité.** Vous en avez l'entière responsabilité.\n\n` +
                     `**🛠️ Commandes de gestion :**\n` +
-                    `\`!add\` • \`!rename [nom]\` • \`!transcript\` • \`!close\`\n\n` +
+                    `\`!rename [nom]\` • \`!close\`\n\n` +
                     `**📊 Codes Statut (à modifier dans le nom) :**\n` +
                     `🟢 Traité | 🔴 Non traité | 🟠 En cours | 🟡 Convoc.| ⛔ Ne pas fermer\n\n` +
                     `**🧵 Fils à ouvrir :** Identités Suspects, Otages, Photos, Voitures, Unités.`
