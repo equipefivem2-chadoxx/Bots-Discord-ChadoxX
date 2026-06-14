@@ -10,6 +10,7 @@ module.exports = {
         await interaction.reply({ content: '⏳ Ouverture de votre ticket...', ephemeral: true });
 
         try {
+            // Utilisation du nom de serveur pour le nom du ticket
             const safeName = interaction.member.displayName.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
 
             const ticketChannel = await interaction.guild.channels.create({
@@ -25,12 +26,20 @@ module.exports = {
                 ]
             });
 
-            // ✨ LOG D'OUVERTURE
+            // ✨ LOG D'OUVERTURE (Salon de logs)
             audit.sendAuditLog(interaction.client, 'OPEN', {
                 user: `<@${interaction.user.id}>`,
                 channelName: ticketChannel.name,
                 action: 'Ouverture d\'un ticket Staff'
             });
+
+            // ✨ SAUVEGARDE DB (Historique JSON)
+            audit.saveTicket(
+                interaction.user.id, 
+                interaction.user.username, 
+                ticketChannel.name, 
+                'OUVERTURE'
+            );
 
             const embed = new EmbedBuilder()
                 .setTitle('🎫 SUPPORT STAFF - SASP')
