@@ -1,4 +1,5 @@
 const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const audit = require('./auditLogs'); // Import du module de log
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -9,7 +10,6 @@ module.exports = {
         await interaction.reply({ content: '⏳ Ouverture de votre ticket...', ephemeral: true });
 
         try {
-            // Utilisation du nom de serveur pour le nom du ticket
             const safeName = interaction.member.displayName.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
 
             const ticketChannel = await interaction.guild.channels.create({
@@ -22,8 +22,14 @@ module.exports = {
                         id: interaction.user.id, 
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] 
                     }
-                    // Ajoute ici l'ID de ton rôle staff pour qu'ils puissent voir le salon
                 ]
+            });
+
+            // ✨ LOG D'OUVERTURE
+            audit.sendAuditLog(interaction.client, 'OPEN', {
+                user: `<@${interaction.user.id}>`,
+                channelName: ticketChannel.name,
+                action: 'Ouverture d\'un ticket Staff'
             });
 
             const embed = new EmbedBuilder()
