@@ -5,12 +5,15 @@ module.exports = {
     async execute(interaction) {
         if (!interaction.isButton() || interaction.customId !== 'open_ticket_staff') return;
 
-        const categoryId = '1515670134424080485'; // Catégorie Staff
-        await interaction.reply({ content: '⏳ Ouverture du ticket...', ephemeral: true });
+        const categoryId = '1515670134424080485';
+        await interaction.reply({ content: '⏳ Ouverture de votre ticket...', ephemeral: true });
 
         try {
+            // Utilisation du nom de serveur pour le nom du ticket
+            const safeName = interaction.member.displayName.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
+
             const ticketChannel = await interaction.guild.channels.create({
-                name: `ticket-${interaction.user.username}`,
+                name: `ticket-${safeName}`,
                 type: ChannelType.GuildText,
                 parent: categoryId,
                 permissionOverwrites: [
@@ -19,25 +22,38 @@ module.exports = {
                         id: interaction.user.id, 
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] 
                     }
-                    // Tu pourras ajouter ici un rôle staff spécifique avec .allow(PermissionFlagsBits.ViewChannel)
+                    // Ajoute ici l'ID de ton rôle staff pour qu'ils puissent voir le salon
                 ]
             });
 
             const embed = new EmbedBuilder()
-                .setTitle('🎫 Ticket Staff')
-                .setDescription('Expliquez votre problème, un membre du staff vous répondra rapidement.');
+                .setTitle('🎫 SUPPORT STAFF - SASP')
+                .setColor('#9a92c7')
+                .setDescription(
+                    `Bonjour, <@${interaction.user.id}>.\n\n` +
+                    `Ce ticket est maintenant ouvert. Un membre de l'équipe du staff va prendre en charge votre demande dans les plus brefs délais.\n\n` +
+                    `Pour rappel, ce support est destiné aux :\n` +
+                    `• **Plaintes**\n` +
+                    `• **Demandes administratives**\n` +
+                    `• **Besoin d'un référent SASP / Haut gradé**\n\n` +
+                    `Merci de détailler votre demande ci-dessous afin de faciliter le traitement de votre dossier.`
+                )
+                .setFooter({ text: 'SASP - Support Administratif' })
+                .setTimestamp();
 
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId('close_ticket_staff')
                     .setLabel('Fermer le ticket')
+                    .setEmoji('🔒')
                     .setStyle(ButtonStyle.Danger)
             );
 
             await ticketChannel.send({ content: `<@${interaction.user.id}>`, embeds: [embed], components: [row] });
-            await interaction.editReply({ content: `✅ Ticket créé : <#${ticketChannel.id}>` });
+            await interaction.editReply({ content: `✅ Votre ticket a été créé ici : <#${ticketChannel.id}>` });
         } catch (e) {
-            await interaction.editReply({ content: '❌ Erreur.' });
+            console.error(e);
+            await interaction.editReply({ content: '❌ Une erreur est survenue lors de la création du ticket.' });
         }
     }
 };

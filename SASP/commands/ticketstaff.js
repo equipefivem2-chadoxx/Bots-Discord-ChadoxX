@@ -8,16 +8,25 @@ module.exports = {
             return message.reply("❌ Tu n'as pas la permission.");
         }
 
-        const channelId = '1515663813960138852'; // Salon Tickets Staff
+        const channelId = '1515663813960138852'; 
         const targetChannel = message.client.channels.cache.get(channelId) || await message.client.channels.fetch(channelId).catch(() => null);
 
         if (!targetChannel) return message.reply(`❌ Salon introuvable.`);
 
         const embed = new EmbedBuilder()
-            .setColor('#F1C40F')
+            .setColor('#9a92c7') // La couleur demandée
             .setTitle('🎫 SUPPORT STAFF - SASP')
-            .setDescription('Besoin d\'aide ou d\'une intervention ?\nCliquez sur le bouton ci-dessous pour ouvrir un ticket.')
-            .setThumbnail(message.guild.iconURL())
+            .setDescription(
+                'Bienvenue au support officiel du San Andreas State Police.\n\n' +
+                'Ce canal est à votre disposition pour :\n' +
+                '• **Déposer une plainte**\n' +
+                '• **Faire une demande administrative**\n' +
+                '• **Parler à un référent SASP / haut gradé**\n' +
+                '• **Toute autre demande liée au pôle SASP**\n\n' +
+                'Veuillez cliquer sur le bouton ci-dessous pour ouvrir votre dossier.'
+            )
+            .setThumbnail(message.guild.iconURL({ dynamic: true }))
+            .setFooter({ text: 'SASP - Support Administratif' })
             .setTimestamp();
 
         const row = new ActionRowBuilder().addComponents(
@@ -29,6 +38,6 @@ module.exports = {
         );
 
         await targetChannel.send({ embeds: [embed], components: [row] });
-        await message.reply(`✅ Panel Staff déployé dans <#${channelId}>.`);
+        await message.reply(`✅ Panel Staff déployé avec succès dans <#${channelId}>.`);
     }
 };
