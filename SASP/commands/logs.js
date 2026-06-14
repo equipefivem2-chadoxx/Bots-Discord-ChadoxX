@@ -4,35 +4,36 @@ const path = require('path');
 
 module.exports = {
     name: 'logs',
-    description: 'Voir l\'historique des tickets d\'un utilisateur.',
+    description: 'Voir l\'historique et les liens d\'archives des tickets.',
     async execute(message, args) {
-        // Sécurité : Réservé au staff
         if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-            return message.reply("❌ Tu n'as pas la permission d'accéder aux logs.");
+            return message.reply("❌ Permission refusée.");
         }
 
-        const target = message.mentions.users.first() || message.client.users.cache.get(args[0]);
-        if (!target) return message.reply("⚠️ Usage : `!logs @Utilisateur`");
+        const targetId = args[0]; // On prend l'ID brut
+        if (!targetId) return message.reply("⚠️ Usage : `!logs [ID Discord]`");
 
         const dbPath = path.join(__dirname, '../ticketHistory.json');
-        if (!fs.existsSync(dbPath)) return message.reply("❌ Aucune donnée d'historique trouvée.");
+        if (!fs.existsSync(dbPath)) return message.reply("❌ Aucune donnée.");
 
         const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-        const userLogs = db.filter(entry => entry.userId === target.id);
+        const userLogs = db.filter(entry => entry.userId === targetId);
 
-        if (userLogs.length === 0) return message.reply("✅ Cet utilisateur n'a aucun historique de ticket.");
+        if (userLogs.length === 0) return message.reply("✅ Aucun historique.");
 
-        // Formatage des logs pour l'embed
-        let description = `Historique pour **${target.username}** :\n\n`;
+        let description = `Historique pour **${userLogs[0].userName}** :\n\n`;
+        
         userLogs.forEach(log => {
-            description += `**[${log.date}]** • ${log.action} • Salon: \`${log.channelName}\`\n`;
+            // Si tu as le lien de l'archive, on l'affiche ici
+            // Note : Si log.archiveLink existe, on crée un lien cliquable
+            const link = log.archiveLink ? `[Lire l'archive](${log.archiveLink})` : "Pas d'archive disponible";
+            description += `**[${log.date}]** • ${log.action} • ${link}\n`;
         });
 
         const embed = new EmbedBuilder()
-            .setTitle(`📜 Logs Tickets - ${target.username}`)
+            .setTitle(`📜 Logs Tickets - ${targetId}`)
             .setColor('#9a92c7')
-            .setDescription(description.length > 4096 ? description.substring(0, 4093) + '...' : description)
-            .setTimestamp();
+            .setDescription(description);
 
         await message.channel.send({ embeds: [embed] });
     }

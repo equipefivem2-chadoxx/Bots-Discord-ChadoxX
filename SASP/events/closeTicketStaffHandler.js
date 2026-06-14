@@ -1,33 +1,47 @@
-const { Events, PermissionFlagsBits } = require('discord.js');
-const audit = require('./auditLogs'); // Import du module de log
+const { Events, AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const audit = require('./auditLogs');
 
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
         if (!interaction.isButton() || interaction.customId !== 'close_ticket_staff') return;
 
-        // ✨ LOG DE FERMETURE (Salon de logs)
-        audit.sendAuditLog(interaction.client, 'CLOSE', {
-            user: `<@${interaction.user.id}>`,
-            channelName: interaction.channel.name,
-            action: 'Fermeture de ticket Staff'
-        });
+        await interaction.reply("⏳ Archivage et fermeture en cours...");
 
-        // ✨ SAUVEGARDE DB (Historique JSON)
-        audit.saveTicket(
-            interaction.user.id, 
-            interaction.user.username, 
-            interaction.channel.name, 
-            'FERMETURE'
-        );
+        try {
+            // 1. Récupérer l'historique des messages
+            const messages = await interaction.channel.messages.fetch({ limit: 100 });
+            const transcript = messages.map(m => `[${m.createdAt.toLocaleString('fr-FR')}] ${m.author.tag}: ${m.content}`).reverse().join('\n');
+            const attachment = new AttachmentBuilder(Buffer.from(transcript), { name: 'ticket.txt' });
 
-        await interaction.reply("🔒 Fermeture du ticket dans 5 secondes...");
-        
-        // Suppression du salon après 5 secondes
-        setTimeout(() => {
-            interaction.channel.delete().catch(err => {
-                console.error("Erreur lors de la suppression du ticket :", err);
+            // 2. Envoyer dans le salon d'archives
+            const archiveChannel = interaction.client.channels.cache.get('1515666786660647054');
+            const archiveMsg = await archiveChannel.send({ 
+                content: `📁 Archive du ticket **${interaction.channel.name}**`, 
+                files: [attachment] 
             });
-        }, 5000);
+
+            // 3. LOG (Embed)
+            audit.sendAuditLog(interaction.client, 'CLOSE', {
+                user: `<@${interaction.user.id}>`,
+                channelName: interaction.channel.name,
+                action: 'Fermeture de ticket Staff'
+            });
+
+            // 4. SAUVEGARDE DB avec le lien
+            audit.saveTicket(
+                interaction.user.id, 
+                interaction.user.username, 
+                interaction.channel.name, 
+                'FERMETURE', 
+                archiveMsg.url
+            );
+
+            // 5. Suppression
+            setTimeout(() => interaction.channel.delete().catch(console.error), 3000);
+        } catch (err) {
+            console.error(err);
+            interaction.followUp("❌ Erreur lors de l'archivage.");
+        }
     }
 };
