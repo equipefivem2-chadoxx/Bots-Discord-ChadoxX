@@ -3,11 +3,9 @@ const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder } = require('disc
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
-        // On ne réagit que si c'est un bouton ET que c'est le bouton du panel SUD
         if (!interaction.isButton()) return;
         if (interaction.customId !== 'open_ticket_ops_sud') return;
 
-        // La catégorie exacte que tu as demandée
         const categoryId = '1489685701443452949';
 
         await interaction.reply({ content: '⏳ Création de votre dossier en cours...', ephemeral: true });
@@ -15,13 +13,13 @@ module.exports = {
         try {
             // 1. Création du salon ticket
             const ticketChannel = await interaction.guild.channels.create({
-                name: `🔴-dossier-${interaction.user.username}`, // Prefixé avec "non traité" par défaut
+                name: `🔴-dossier-${interaction.user.username}`,
                 type: ChannelType.GuildText,
                 parent: categoryId,
                 permissionOverwrites: [
                     {
                         id: interaction.guild.id,
-                        deny: [PermissionFlagsBits.ViewChannel], // Cache le salon à tout le monde
+                        deny: [PermissionFlagsBits.ViewChannel],
                     },
                     {
                         id: interaction.user.id,
@@ -31,7 +29,7 @@ module.exports = {
                             PermissionFlagsBits.ReadMessageHistory,
                             PermissionFlagsBits.CreatePublicThreads,
                             PermissionFlagsBits.SendMessagesInThreads
-                        ], // Donne l'accès au créateur
+                        ],
                     },
                     {
                         id: interaction.client.user.id,
@@ -40,19 +38,18 @@ module.exports = {
                 ]
             });
 
-            // 2. Le message d'instructions formaté
+            // 2. L'Embed des instructions (Celui qu'on avait fait)
             const embedInstructions = new EmbedBuilder()
                 .setTitle('📁 DOSSIER D\'OPÉRATION')
-                .setColor('#E74C3C')
-                .setDescription(`Bienvenue <@${interaction.user.id}>.\nEn ouvrant ce dossier, **vous vous désignez LEAD TERRAIN**, ce qui veut dire que vous en aurez l'entière responsabilité et devrez le traiter dans son intégralité.\n\n` +
-                              `⚠️ **MERCI DE SUIVRE OBLIGATOIREMENT CE MODE DE FONCTIONNEMENT**\n\n` +
+                .setColor('#E74C3C') // Rouge SASP
+                .setDescription(`⚠️ **MERCI DE SUIVRE OBLIGATOIREMENT CE MODE DE FONCTIONNEMENT**\n\n` +
                               `🛠️ **Commandes de gestion d'un dossier :**\n` +
                               `\`/add\` : Ajouter une personne/grade spécifiquement sur un dossier (Exemple: LSPD)\n` +
                               `\`/rename [nom]\` : Renommer un dossier\n` +
                               `\`/transcript\` : Obtenir une archive de ce dossier dans 💾・𝘼𝙧𝙘𝙝𝙞𝙫𝙚𝙨\n` +
                               `\`/close\` : Fermer un dossier (*Archive OBLIGATOIRE avant clôture*)\n\n` +
                               `📊 **Statut d'un dossier (à modifier dans le nom) :**\n` +
-                              `🟢 : Dossier validé par un supérieur, prêt a être fermé (Rapport fait)\n` +
+                              `🟢 : Dossier traité, prêt a être fermé (Rapport fait)\n` +
                               `🔴 : Dossier non traité (Rapport non fait)\n` +
                               `🟠 : Opération toujours en cours\n` +
                               `🔵 : Dossier pour la G.N.D\n` +
@@ -68,9 +65,51 @@ module.exports = {
                 .setFooter({ text: 'N\'oubliez pas de rename le dossier dès le début de l\'opération !' })
                 .setTimestamp();
 
-            await ticketChannel.send({ content: `<@${interaction.user.id}>`, embeds: [embedInstructions] });
+            // 3. L'Embed du Modèle (Formaté pour être copié facilement)
+            const embedTemplate = new EmbedBuilder()
+                .setTitle('📝 MODÈLE À REMPLIR')
+                .setColor('#2980B9') // Bleu
+                .setDescription(
+                    `*Copiez le bloc ci-dessous pour rédiger votre rapport d'opération :*\n\n` +
+                    `\`\`\`text\n` +
+                    `╔════════════════════╗\n` +
+                    `🚨 OPÉRATION 🚨\n` +
+                    `╚════════════════════╝\n\n` +
+                    `📅 Date / Heure :\n` +
+                    `📍 Secteur :\n` +
+                    `⚖️ Infraction :\n\n` +
+                    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+                    `👥 Suspects\n` +
+                    `• \n` +
+                    `• \n` +
+                    `• \n\n` +
+                    `🎭 Otages\n` +
+                    `• \n` +
+                    `• \n` +
+                    `• \n\n` +
+                    `🚗 Véhicules\n` +
+                    `• \n` +
+                    `• \n` +
+                    `• \n\n` +
+                    `📢 Revendications\n` +
+                    `• \n\n` +
+                    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+                    `🎖️ Lead Terrain :\n` +
+                    `🤝 Lead Négociations :\n\n` +
+                    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+                    `📝 Rapport d'Opération\n\n` +
+                    `Décrivez précisément les faits, le déroulement de l'intervention et son dénouement afin de permettre une compréhension complète de l'opération par toute personne consultant le dossier.\n\n` +
+                    `Compte-rendu :\n` +
+                    `\`\`\``
+                );
 
-            // 3. Confirmation à l'utilisateur
+            // 4. Le message complet envoyé dans le ticket (Le ping + les deux embeds)
+            await ticketChannel.send({ 
+                content: `📢 <@${interaction.user.id}> a ouvert un dossier d'opération !\n\nEn ouvrant ce dossier, **vous vous désignez LEAD TERRAIN**, ce qui veut dire que vous en aurez l'entière responsabilité et devrez le traiter dans son intégralité.`, 
+                embeds: [embedInstructions, embedTemplate] 
+            });
+
+            // 5. Confirmation à l'utilisateur sur le bouton
             await interaction.editReply({ content: `✅ Votre dossier d'opération a été créé ici : <#${ticketChannel.id}>` });
 
         } catch (error) {
