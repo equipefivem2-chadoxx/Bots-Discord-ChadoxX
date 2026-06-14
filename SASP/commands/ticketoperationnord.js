@@ -18,7 +18,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor('#2980B9')
             .setTitle('🚓 BUREAU DES OPÉRATIONS - NORD')
-            .setDescription('**Création d\'un nouveau dossier d\'opération**\n\nCliquez sur le bouton ci-dessous pour ouvrir un dossier dédié à votre intervention. Vous en serez désigné Lead Terrain.\n\n⚠️ *Tout abus d\'ouverture de dossier sera sanctionné.*')
+            .setDescription('**Création d\'un nouveau dossier d\'opération**\n\nCliquez sur le bouton ci-dessous pour ouvrir un dossier dédié à votre intervention. \n\n⚠️ *Tout abus d\'ouverture de dossier sera sanctionné.*')
             .setThumbnail(message.guild.iconURL({ dynamic: true }))
             .setTimestamp();
 
