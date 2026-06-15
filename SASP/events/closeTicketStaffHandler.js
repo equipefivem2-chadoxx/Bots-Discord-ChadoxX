@@ -1,4 +1,4 @@
-const { Events, AttachmentBuilder } = require('discord.js');
+const { Events, AttachmentBuilder, PermissionFlagsBits } = require('discord.js');
 const audit = require('./auditLogs');
 const fs = require('fs');
 const path = require('path');
@@ -7,6 +7,18 @@ module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
         if (!interaction.isButton() || interaction.customId !== 'close_ticket_staff') return;
+
+        // 🛑 SÉCURITÉ : VÉRIFICATION DES RÔLES
+        const allowedRoles = ['1489901435863830548', '1489685700252143897'];
+        const hasAllowedRole = interaction.member.roles.cache.some(role => allowedRoles.includes(role.id));
+        const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+
+        if (!hasAllowedRole && !isAdmin) {
+            return interaction.reply({ 
+                content: "❌ Tu n'as pas la permission de fermer ce ticket. Seul le Staff est autorisé à le faire.", 
+                ephemeral: true 
+            });
+        }
 
         await interaction.reply("⏳ Archivage et fermeture en cours...");
 
@@ -28,7 +40,7 @@ module.exports = {
             // On récupère le lien internet cliquable
             const fileWebLink = archiveMsg.attachments.first().url;
 
-            // 🌟 NOUVEAU : RECHERCHE DU CRÉATEUR DU TICKET 🌟
+            // 3. RECHERCHE DU CRÉATEUR DU TICKET
             let originalUserId = interaction.user.id;
             let originalUserName = interaction.user.username;
             const dbPath = path.join(__dirname, '../ticketHistory.json');
@@ -36,23 +48,22 @@ module.exports = {
             if (fs.existsSync(dbPath)) {
                 try {
                     const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-                    // On cherche dans la DB qui a ouvert CE salon
                     const openLog = db.find(log => log.channelName === interaction.channel.name && log.action === 'OUVERTURE');
                     if (openLog) {
-                        originalUserId = openLog.userId; // On récupère l'ID du joueur (ex: emmaaamvp)
+                        originalUserId = openLog.userId;
                         originalUserName = openLog.userName;
                     }
                 } catch (err) {}
             }
 
-            // 3. LOG Audit visuel (On garde ton ID pour dire "C'est Jesse qui a fermé")
+            // 4. LOG Audit visuel
             audit.sendAuditLog(interaction.client, 'CLOSE', {
                 user: `<@${interaction.user.id}>`,
                 channelName: interaction.channel.name,
                 action: 'Fermeture de ticket Staff'
             });
 
-            // 4. SAUVEGARDE DB (On attribue l'archive au vrai joueur pour le !logs)
+            // 5. SAUVEGARDE DB avec le vrai lien
             audit.saveTicket(
                 originalUserId, 
                 originalUserName, 
@@ -61,7 +72,7 @@ module.exports = {
                 fileWebLink
             );
 
-            // 5. Suppression du salon
+            // 6. Suppression du salon
             setTimeout(() => interaction.channel.delete().catch(console.error), 3000);
         } catch (err) {
             console.error(err);
