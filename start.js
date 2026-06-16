@@ -4,7 +4,7 @@ const path = require('path');
 // 🔗 CONFIGURATION CENTRALISÉE
 const WEBHOOK_URL = "https://canary.discord.com/api/webhooks/1491956067536736358/IP3xrUpadtoGnvHgifUPpnoJyc0177wabRrqZPh55rBXp6mVD0eBGbVE7Qk5XbHZCMWV";
 
-// 📦 Liste des bots
+// 📦 Liste des bots (Mis à jour avec tes deux nouveaux bots IrisStudio)
 const bots = [
     { name: "SASP", dir: "SASP", file: "index.js" },
     { name: "SUPPORT", dir: "SUPPORT", file: "index.js" },
@@ -14,7 +14,9 @@ const bots = [
     { name: "SAMC", dir: "SAMC", file: "index.js" },
     { name: "IrisFA", dir: "IrisFA", file: "index.js" },
     { name: "NUXA", dir: "NUXA", file: "index.js" },
-    { name: "ChadoxX TICKET", dir: "chadoxxticket", file: "index.js" }
+    { name: "ChadoxX TICKET", dir: "chadoxxticket", file: "index.js" },
+    { name: "IrisStudio PROTECT", dir: "irisstudio_protect", file: "index.js" },
+    { name: "IrisStudio TICKET", dir: "Irisstudio_ticket", file: "index.js" }
 ];
 
 // 📨 Envoi webhook
