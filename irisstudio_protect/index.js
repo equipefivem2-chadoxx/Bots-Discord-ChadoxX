@@ -1,17 +1,31 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const config = require('./config.json');
+const fs = require('fs');
+const path = require('path');
 
-// Création du client avec les intentions de base
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds
     ]
 });
 
-// Événement déclenché quand le bot est allumé
-client.once('ready', () => {
-    console.log(`✅ ALLUMAGE RÉUSSI : ${client.user.tag} est en ligne !`);
-});
+// 🔄 Système de chargement modulaire des événements
+const eventsPath = path.join(__dirname, 'events');
 
-// Connexion du bot avec le token du config.json
+if (fs.existsSync(eventsPath)) {
+    const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+    for (const file of eventFiles) {
+        const filePath = path.join(eventsPath, file);
+        const event = require(filePath);
+        
+        if (event.once) {
+            client.once(event.name, (...args) => event.execute(...args));
+        } else {
+            client.on(event.name, (...args) => event.execute(...args));
+        }
+    }
+}
+
+// Connexion du bot
 client.login(config.token);

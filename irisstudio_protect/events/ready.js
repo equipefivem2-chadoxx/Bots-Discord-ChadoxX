@@ -1,12 +1,12 @@
 const { ActivityType } = require('discord.js');
 
 module.exports = {
-    name: 'clientReady', // Supprime définitivement l'erreur "DeprecationWarning"
+    name: 'clientReady', // <-- Ça corrige l'erreur rouge DeprecationWarning
     once: true,
     execute(client) {
-        console.log(`✅ ALLUMAGE RÉUSSI : ${client.user.tag} est en ligne !`);
+        console.log(`✅ ALLUMAGE RÉUSSI (Modulaire) : ${client.user.tag} est en ligne !`);
         
-        // Méthode forte pour forcer l'affichage du statut
+        // Force l'affichage du statut
         client.user.setPresence({
             activities: [{ 
                 name: "discord.gg/Iris'Studio", 
