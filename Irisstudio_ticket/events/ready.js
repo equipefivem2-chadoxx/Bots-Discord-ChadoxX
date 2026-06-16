@@ -1,12 +1,12 @@
-const { Events, ActivityType } = require('discord.js');
+const { ActivityType } = require('discord.js');
 
 module.exports = {
-    name: Events.ClientReady,
+    name: 'clientReady', // <-- LA CORRECTION EST ICI
     once: true,
     execute(client) {
         console.log(`✅ ALLUMAGE RÉUSSI : ${client.user.tag} est en ligne !`);
         
-        // Définition du statut personnalisé "Regarde discord.gg/Iris'Studio"
+        // Définition du statut personnalisé
         client.user.setActivity("discord.gg/Iris'Studio", { 
             type: ActivityType.Watching 
         });
