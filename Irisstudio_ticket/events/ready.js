@@ -1,14 +1,18 @@
 const { ActivityType } = require('discord.js');
 
 module.exports = {
-    name: 'clientReady', // <-- LA CORRECTION EST ICI
+    name: 'clientReady', // Supprime définitivement l'erreur "DeprecationWarning"
     once: true,
     execute(client) {
         console.log(`✅ ALLUMAGE RÉUSSI : ${client.user.tag} est en ligne !`);
         
-        // Définition du statut personnalisé
-        client.user.setActivity("discord.gg/Iris'Studio", { 
-            type: ActivityType.Watching 
+        // Méthode forte pour forcer l'affichage du statut
+        client.user.setPresence({
+            activities: [{ 
+                name: "discord.gg/Iris'Studio", 
+                type: ActivityType.Watching 
+            }],
+            status: 'online'
         });
     },
 };
