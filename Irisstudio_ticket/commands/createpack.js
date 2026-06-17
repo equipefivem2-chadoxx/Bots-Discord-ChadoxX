@@ -6,7 +6,6 @@ module.exports = {
         .setDescription('Envoie le panel de gestion pour créer un pack graphique.')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
     async execute(interaction) {
-        // Le salon cible que tu as demandé
         const targetChannelId = '1516750913086292039';
         const targetChannel = interaction.client.channels.cache.get(targetChannelId);
 
@@ -14,23 +13,22 @@ module.exports = {
             return interaction.reply({ content: "❌ Le salon cible est introuvable. Vérifie l'ID.", ephemeral: true });
         }
 
-        // Création de l'embed du panel Staff
+        // --- DESIGN PANEL ÉPURÉ ---
+        // Une couleur de fond sombre pour que l'embed se fonde dans Discord
         const panelEmbed = new EmbedBuilder()
-            .setColor('#00e5ff')
-            .setTitle('📦 Outil de Publication : Packs Graphiques')
-            .setDescription('Clique sur le bouton ci-dessous pour ouvrir le formulaire de création et publier un nouveau pack sur le serveur.')
-            .setThumbnail(interaction.guild.iconURL());
+            .setColor('#2b2d31') 
+            .setAuthor({ name: "Iris'Studio | Création de Packs", iconURL: interaction.guild.iconURL() })
+            .setDescription("> 🛠️ *Cet outil permet de générer et publier des packs graphiques de manière standardisée.*\n\nCliquez sur le bouton ci-dessous pour remplir les informations du nouveau pack.")
+            .setFooter({ text: "Outil Staff Réservé" });
 
-        // Le bouton qui va déclencher le formulaire
         const button = new ButtonBuilder()
             .setCustomId('open_pack_form')
-            .setLabel('Créer un Pack')
-            .setEmoji('🎨')
-            .setStyle(ButtonStyle.Primary);
+            .setLabel('Publier un Pack')
+            .setEmoji('📦')
+            .setStyle(ButtonStyle.Secondary); // Bouton gris pour un look plus pro et discret
 
         const row = new ActionRowBuilder().addComponents(button);
 
-        // Envoi dans le salon spécifique
         await targetChannel.send({ embeds: [panelEmbed], components: [row] });
         await interaction.reply({ content: `✅ Panel de création envoyé avec succès dans <#${targetChannelId}> !`, ephemeral: true });
     }
