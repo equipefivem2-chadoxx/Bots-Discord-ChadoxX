@@ -20,8 +20,7 @@ module.exports = {
             return interaction.reply({ content: "❌ Catégorie introuvable.", ephemeral: true });
         }
 
-        // --- 🔄 NOUVEAU : Reset du menu déroulant ---
-        // On recrée le menu vierge exactement comme dans la commande
+        // --- 🔄 Reset du menu déroulant ---
         const resetMenu = new StringSelectMenuBuilder()
             .setCustomId('ticket_select')
             .setPlaceholder('Sélectionnez une catégorie...')
@@ -34,8 +33,6 @@ module.exports = {
             ]);
 
         const resetRow = new ActionRowBuilder().addComponents(resetMenu);
-
-        // On met à jour l'interaction pour "dé-sélectionner" l'option choisie visuellement
         await interaction.update({ components: [resetRow] });
 
         const staffRoleId = '1516530361511710730';
@@ -45,6 +42,7 @@ module.exports = {
                 name: `ticket-${interaction.user.username}`,
                 type: ChannelType.GuildText,
                 parent: selectedCategory,
+                topic: interaction.user.id, // 🎯 LA MODIFICATION EST LÀ : On stocke l'ID dans le topic
                 permissionOverwrites: [
                     {
                         id: interaction.guild.id,
@@ -79,14 +77,13 @@ module.exports = {
 
             const row = new ActionRowBuilder().addComponents(closeButton);
 
-            // --- 🔕 NOUVEAU : Envoi de l'embed SANS mentionner le staff ---
+            // --- Envoi de l'embed SANS mentionner le staff ---
             await channel.send({ 
                 content: `<@${interaction.user.id}>`, // Ping uniquement l'utilisateur
                 embeds: [welcomeEmbed], 
                 components: [row] 
             });
 
-            // Comme on a déjà répondu avec "interaction.update()", on doit utiliser "followUp" pour le message de confirmation invisible
             await interaction.followUp({ content: `✅ Ton ticket a été créé avec succès : <#${channel.id}>`, ephemeral: true });
 
         } catch (error) {
