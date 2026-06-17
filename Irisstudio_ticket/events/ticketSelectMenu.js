@@ -1,13 +1,11 @@
-const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
     name: Events.InteractionCreate,
     once: false,
     async execute(interaction) {
-        // On ignore si ce n'est pas notre menu de tickets
         if (!interaction.isStringSelectMenu() || interaction.customId !== 'ticket_select') return;
 
-        // Dictionnaire de tes catégories
         const categories = {
             'achat': '1516530471994134568',
             'support': '1516530475760357406',
@@ -22,37 +20,56 @@ module.exports = {
             return interaction.reply({ content: "❌ Catégorie introuvable.", ephemeral: true });
         }
 
-        // On fait patienter l'interaction le temps de créer le salon
         await interaction.deferReply({ ephemeral: true });
 
+        const staffRoleId = '1516530361511710730';
+
         try {
-            // Création du salon dans la bonne catégorie
             const channel = await interaction.guild.channels.create({
                 name: `ticket-${interaction.user.username}`,
                 type: ChannelType.GuildText,
                 parent: selectedCategory,
                 permissionOverwrites: [
                     {
-                        id: interaction.guild.id, // Cache le salon à tout le monde
+                        id: interaction.guild.id,
                         deny: [PermissionFlagsBits.ViewChannel],
                     },
                     {
-                        id: interaction.user.id, // Affiche le salon au créateur
+                        id: interaction.user.id,
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
+                    {
+                        id: staffRoleId, // Le staff voit le ticket
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
                     }
-                    // Note: Plus tard, tu pourras ajouter un bloc ici pour donner l'accès au rôle "Staff"
                 ]
             });
 
-            // Message de bienvenue dans le nouveau ticket
+            // --- DESIGN ÉPURÉ DU TICKET ---
+            const goldColor = '#d4af37';
             const welcomeEmbed = new EmbedBuilder()
-                .setTitle('🎟️ Nouveau Ticket')
-                .setDescription(`Bienvenue <@${interaction.user.id}> !\n\nMerci de détailler ta demande ici, un membre de l'équipe va te prendre en charge sous peu.`)
-                .setColor('#2b2d31');
+                .setColor(goldColor)
+                .setAuthor({ name: "Iris'Studio | Support", iconURL: interaction.guild.iconURL() })
+                .setDescription(`Bonjour <@${interaction.user.id}> et bienvenue dans ton ticket !\n\n> 📝 *Merci de détailler au maximum ta demande. Un membre de l'équipe te prendra en charge très rapidement.*\n\n⚠️ **Rappel :** Inutile de mentionner le staff, nous sommes déjà notifiés.`)
+                .setFooter({ text: `Ticket créé par ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+                .setTimestamp();
 
-            await channel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed] });
+            // --- BOUTON FERMER ---
+            const closeButton = new ButtonBuilder()
+                .setCustomId('close_ticket')
+                .setLabel('Fermer le ticket')
+                .setEmoji('🔒')
+                .setStyle(ButtonStyle.Danger);
 
-            // On confirme à l'utilisateur que c'est bon
+            const row = new ActionRowBuilder().addComponents(closeButton);
+
+            // Envoi de l'embed avec mention invisible (pour notifier le staff et le joueur)
+            await channel.send({ 
+                content: `||<@${interaction.user.id}> | <@&${staffRoleId}>||`, 
+                embeds: [welcomeEmbed], 
+                components: [row] 
+            });
+
             await interaction.editReply({ content: `✅ Ton ticket a été créé avec succès : <#${channel.id}>` });
 
         } catch (error) {
