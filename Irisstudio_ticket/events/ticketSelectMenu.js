@@ -1,4 +1,4 @@
-const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -20,7 +20,23 @@ module.exports = {
             return interaction.reply({ content: "❌ Catégorie introuvable.", ephemeral: true });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        // --- 🔄 NOUVEAU : Reset du menu déroulant ---
+        // On recrée le menu vierge exactement comme dans la commande
+        const resetMenu = new StringSelectMenuBuilder()
+            .setCustomId('ticket_select')
+            .setPlaceholder('Sélectionnez une catégorie...')
+            .addOptions([
+                { label: 'Support Technique', value: 'support', emoji: '🛠️' },
+                { label: 'Achat / Boutique', value: 'achat', emoji: '🛒' },
+                { label: 'Partenariat / Collaboration', value: 'colab', emoji: '🤝' },
+                { label: 'Question Générale', value: 'questions', emoji: '❓' },
+                { label: 'Autre Demande', value: 'autre', emoji: '📝' }
+            ]);
+
+        const resetRow = new ActionRowBuilder().addComponents(resetMenu);
+
+        // On met à jour l'interaction pour "dé-sélectionner" l'option choisie visuellement
+        await interaction.update({ components: [resetRow] });
 
         const staffRoleId = '1516530361511710730';
 
@@ -63,18 +79,19 @@ module.exports = {
 
             const row = new ActionRowBuilder().addComponents(closeButton);
 
-            // Envoi de l'embed avec mention invisible (pour notifier le staff et le joueur)
+            // --- 🔕 NOUVEAU : Envoi de l'embed SANS mentionner le staff ---
             await channel.send({ 
-                content: `||<@${interaction.user.id}> | <@&${staffRoleId}>||`, 
+                content: `<@${interaction.user.id}>`, // Ping uniquement l'utilisateur
                 embeds: [welcomeEmbed], 
                 components: [row] 
             });
 
-            await interaction.editReply({ content: `✅ Ton ticket a été créé avec succès : <#${channel.id}>` });
+            // Comme on a déjà répondu avec "interaction.update()", on doit utiliser "followUp" pour le message de confirmation invisible
+            await interaction.followUp({ content: `✅ Ton ticket a été créé avec succès : <#${channel.id}>`, ephemeral: true });
 
         } catch (error) {
             console.error(error);
-            await interaction.editReply({ content: "❌ Une erreur s'est produite lors de la création du ticket." });
+            await interaction.followUp({ content: "❌ Une erreur s'est produite lors de la création du ticket.", ephemeral: true });
         }
     }
 };
