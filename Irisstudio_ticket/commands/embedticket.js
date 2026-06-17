@@ -3,9 +3,9 @@ const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBui
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('embedticket')
-        .setDescription('Envoie le panel de création de tickets avec le menu déroulant stylisé.'),
+        .setDescription('Envoie le panel de création de tickets.'),
     async execute(interaction) {
-        // IDs que tu m'as fournis
+        // IDs
         const allowedRoleId = '1516530356314968115';
         const targetChannelId = '1516531376436940910';
 
@@ -26,57 +26,32 @@ module.exports = {
             });
         }
 
-        // --- SECTION STYLE PREMIUM ---
-        // Une couleur profonde (Teal sombre) qui rend super bien avec le gold
-        const premiumColor = '#1d606b'; 
-        const guildIcon = interaction.guild.iconURL();
+        // --- SECTION DESIGN ÉPURÉ ---
+        const goldColor = '#d4af37'; // Couleur or assortie à ton logo
 
-        // 3. Création des Embeds Empilés (Stack)
+        // 3. Création de l'Embed unique
+        const embed = new EmbedBuilder()
+            .setColor(goldColor)
+            .setAuthor({ name: "Iris'Studio | Centre d'Assistance", iconURL: interaction.guild.iconURL() })
+            .setDescription("Bienvenue sur notre support.\n\nAfin de vous rediriger vers le bon service, veuillez sélectionner la catégorie qui correspond à votre besoin dans le menu déroulant ci-dessous.\n\n> ⏳ *Notre équipe prendra en charge votre ticket dans les plus brefs délais.*")
+            .setFooter({ text: "Iris'Studio", iconURL: interaction.guild.iconURL() });
 
-        // Embed d'En-tête : Focus sur la marque
-        const headerEmbed = new EmbedBuilder()
-            .setTitle('🌐 CENTRE D\'ASSISTANCE Iris\'Studio')
-            .setColor(premiumColor)
-            .setThumbnail(guildIcon)
-            .setDescription('Votre Hub de Support Premium, à votre écoute.')
-            .addFields({ name: '\u200B', value: '✨ Bienvenue sur notre panel de ticket. Ce système est conçu pour vous offrir un service rapide, clair et de haute qualité.' });
-
-        // Embed de Contenu : Les instructions claires
-        const contentEmbed = new EmbedBuilder()
-            .setColor(premiumColor)
-            .setAuthor({ name: 'Iris\'Studio', iconURL: guildIcon })
-            .setDescription('**Comment ouvrir un ticket ?**\nSuivez ces étapes simples pour obtenir de l\'aide :\n\n`1️⃣` Sélectionnez la catégorie ci-dessous.\n`2️⃣` Décrivez votre demande détaillée dans le salon créé.\n`3️⃣` Un membre de l\'équipe vous répondra sous peu.')
-            .addFields(
-                { name: '\u200B', value: '\u200B', inline: false },
-                { name: '✅ NOS ENGAGEMENTS', value: 'Confidentialité Garantie\nRéponse Prioritaire\nExpertise Professionnelle', inline: true },
-                { name: '\u200B', value: '\u200B', inline: true }, // Spacer
-                { name: '📝 CATEGORIES', value: '🛠️ Support\n🛒 Achat\n🤝 Collaboration\n❓ Question\n📝 Autre', inline: true }
-            );
-
-        // Embed de Pied de page : Touche finale clean
-        const footerEmbed = new EmbedBuilder()
-            .setColor(premiumColor)
-            .setFooter({ text: '© Iris\'Studio - Droits Réservés', iconURL: guildIcon });
-
-
-        // 4. Création du menu déroulant (Select Menu) stylisé
+        // 4. Menu déroulant simplifié
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('ticket_select')
-            .setPlaceholder('Veuillez sélectionner une catégorie de ticket...')
+            .setPlaceholder('Sélectionnez une catégorie...')
             .addOptions([
-                { label: 'SUPPORT', description: 'Assistance technique & Problèmes', value: 'support', emoji: '🛠️' },
-                { label: 'ACHAT', description: 'Questions ou Problèmes d\'achat', value: 'achat', emoji: '🛒' },
-                { label: 'COLLABORATION', description: 'Partenariat & Collaboration', value: 'colab', emoji: '🤝' },
-                { label: 'QUESTIONS', description: 'Demandes générales', value: 'questions', emoji: '❓' },
-                { label: 'AUTRES', description: 'Toute autre demande', value: 'autre', emoji: '📝' }
+                { label: 'Support Technique', value: 'support', emoji: '🛠️' },
+                { label: 'Achat / Boutique', value: 'achat', emoji: '🛒' },
+                { label: 'Partenariat / Collaboration', value: 'colab', emoji: '🤝' },
+                { label: 'Question Générale', value: 'questions', emoji: '❓' },
+                { label: 'Autre Demande', value: 'autre', emoji: '📝' }
             ]);
 
-        // Action Row pour le dropdown, labellisée pour le style
         const row = new ActionRowBuilder().addComponents(selectMenu);
 
-        // 5. Envoi du panel et confirmation
-        // On envoie un tableau d'embeds [headerEmbed, contentEmbed, footerEmbed]
-        await targetChannel.send({ embeds: [headerEmbed, contentEmbed, footerEmbed], components: [row] });
-        await interaction.reply({ content: "✅ Le panel de tickets PREMIUM a été envoyé avec succès !", ephemeral: true });
+        // 5. Envoi
+        await targetChannel.send({ embeds: [embed], components: [row] });
+        await interaction.reply({ content: "✅ Panel épuré envoyé avec succès !", ephemeral: true });
     }
 };
