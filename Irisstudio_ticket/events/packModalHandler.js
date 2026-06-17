@@ -17,14 +17,12 @@ module.exports = {
             return interaction.reply({ content: `❌ Impossible de trouver le salon avec l'ID \`${targetChannelId}\`. L'envoi a été annulé.`, ephemeral: true });
         }
 
-        // --- DESIGN PREMIUM DU PACK ---
-        const cyanColor = '#00e5ff'; // On garde ta ligne cyan sur le côté
+        // --- DESIGN PREMIUM ÉPURÉ (Sans l'en-tête Author) ---
+        const cyanColor = '#00e5ff'; 
         
         const packEmbed = new EmbedBuilder()
             .setColor(cyanColor)
-            .setAuthor({ name: "NOUVEAU PACK DISPONIBLE", iconURL: interaction.guild.iconURL() })
-            .setTitle(titre.toUpperCase())
-            // Utilisation des citations (>) pour un rendu aéré
+            .setTitle(titre.toUpperCase()) // Le titre apparaît tout en haut directement
             .setDescription(`> 🎥 **[Voir la vidéo Preview](${previewUrl})**\n> \n> ⬇️ **[Télécharger le pack ici](${downloadUrl})**`)
             .setImage(imageUrl)
             .setFooter({ text: "Iris'Studio", iconURL: interaction.guild.iconURL() })
