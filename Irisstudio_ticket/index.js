@@ -5,7 +5,8 @@ const path = require('path');
 
 const client = new Client({
     intents: [
-        GatewayIntentBits.Guilds
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers // <-- AJOUT DE CETTE LIGNE OBLIGATOIRE ICI
     ]
 });
 
