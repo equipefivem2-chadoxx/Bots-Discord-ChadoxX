@@ -9,7 +9,7 @@ module.exports = {
         // Force l'affichage du statut
         client.user.setPresence({
             activities: [{ 
-                name: "discord.gg/Iris'Studio", 
+                name: "Surveille Iris'Studio", 
                 type: ActivityType.Watching 
             }],
             status: 'online'
