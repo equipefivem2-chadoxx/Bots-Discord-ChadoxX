@@ -9,7 +9,7 @@ module.exports = {
     async execute(interaction) {
         if (!interaction.isButton() || interaction.customId !== 'close_ticket') return;
 
-        const staffRoleId = '1516530361511710730';
+        const staffRoleId = '1516530361511710730'; '1516530345250394273';
         const logChannelId = '1516530714592546886';
 
         if (!interaction.member.roles.cache.has(staffRoleId)) {
