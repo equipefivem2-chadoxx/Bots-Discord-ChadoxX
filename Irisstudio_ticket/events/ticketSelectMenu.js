@@ -6,9 +6,11 @@ module.exports = {
     async execute(interaction) {
         if (!interaction.isStringSelectMenu() || interaction.customId !== 'ticket_select') return;
 
+        // Ajout de la catégorie VIP ici
         const categories = {
             'achat': '1516530471994134568',
             'support': '1516530475760357406',
+            'vip': '1521935781311287408', // <-- NOUVELLE CATÉGORIE ICI
             'colab': '1516530478595833877',
             'autre': '1516743717598269500',
             'questions': '1516743777669091379'
@@ -20,13 +22,14 @@ module.exports = {
             return interaction.reply({ content: "❌ Catégorie introuvable.", ephemeral: true });
         }
 
-        // --- 🔄 Reset du menu déroulant ---
+        // --- 🔄 Reset du menu déroulant (avec l'option VIP incluse) ---
         const resetMenu = new StringSelectMenuBuilder()
             .setCustomId('ticket_select')
             .setPlaceholder('Sélectionnez une catégorie...')
             .addOptions([
                 { label: 'Support Technique', value: 'support', emoji: '🛠️' },
                 { label: 'Achat / Boutique', value: 'achat', emoji: '🛒' },
+                { label: 'Achat VIP', value: 'vip', emoji: '💎' }, // <-- NOUVELLE OPTION ICI
                 { label: 'Partenariat / Collaboration', value: 'colab', emoji: '🤝' },
                 { label: 'Question Générale', value: 'questions', emoji: '❓' },
                 { label: 'Autre Demande', value: 'autre', emoji: '📝' }
@@ -42,7 +45,7 @@ module.exports = {
                 name: `ticket-${interaction.user.username}`,
                 type: ChannelType.GuildText,
                 parent: selectedCategory,
-                topic: interaction.user.id, // 🎯 LA MODIFICATION EST LÀ : On stocke l'ID dans le topic
+                topic: interaction.user.id,
                 permissionOverwrites: [
                     {
                         id: interaction.guild.id,

@@ -6,7 +6,7 @@ module.exports = {
         .setDescription('Envoie le panel de création de tickets.'),
     async execute(interaction) {
         // IDs
-        const allowedRoleId = '1516530356314968115'; '1516530356314968115';
+        const allowedRoleId = '1516530356314968115';
         const targetChannelId = '1516531376436940910';
 
         // 1. Vérification du rôle
@@ -36,13 +36,14 @@ module.exports = {
             .setDescription("Bienvenue sur notre support.\n\nAfin de vous rediriger vers le bon service, veuillez sélectionner la catégorie qui correspond à votre besoin dans le menu déroulant ci-dessous.\n\n> ⏳ *Notre équipe prendra en charge votre ticket dans les plus brefs délais.*")
             .setFooter({ text: "Iris'Studio", iconURL: interaction.guild.iconURL() });
 
-        // 4. Menu déroulant simplifié
+        // 4. Menu déroulant simplifié (avec l'option VIP)
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('ticket_select')
             .setPlaceholder('Sélectionnez une catégorie...')
             .addOptions([
                 { label: 'Support Technique', value: 'support', emoji: '🛠️' },
                 { label: 'Achat / Boutique', value: 'achat', emoji: '🛒' },
+                { label: 'Achat VIP', value: 'vip', emoji: '💎' }, // <-- NOUVELLE OPTION ICI
                 { label: 'Partenariat / Collaboration', value: 'colab', emoji: '🤝' },
                 { label: 'Question Générale', value: 'questions', emoji: '❓' },
                 { label: 'Autre Demande', value: 'autre', emoji: '📝' }
