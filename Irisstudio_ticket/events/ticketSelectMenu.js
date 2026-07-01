@@ -10,7 +10,7 @@ module.exports = {
         const categories = {
             'achat': '1516530471994134568',
             'support': '1516530475760357406',
-            'vip': '1521935781311287408', // <-- NOUVELLE CATÉGORIE ICI
+            'prenium': '1521935781311287408', // <-- NOUVELLE CATÉGORIE ICI
             'colab': '1516530478595833877',
             'autre': '1516743717598269500',
             'questions': '1516743777669091379'

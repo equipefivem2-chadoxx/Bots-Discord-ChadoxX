@@ -7,7 +7,7 @@ module.exports = {
     async execute(interaction) {
         // IDs
         const allowedRoleId = '1516530356314968115';
-        const targetChannelId = '1521935781311287408';
+        const targetChannelId = '1516531376436940910';
 
         // 1. Vérification du rôle
         if (!interaction.member.roles.cache.has(allowedRoleId)) {
