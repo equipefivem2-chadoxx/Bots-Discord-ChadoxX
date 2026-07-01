@@ -29,7 +29,7 @@ module.exports = {
             .addOptions([
                 { label: 'Support Technique', value: 'support', emoji: '🛠️' },
                 { label: 'Achat / Boutique', value: 'achat', emoji: '🛒' },
-                { label: 'Achat VIP', value: 'vip', emoji: '💎' }, // <-- NOUVELLE OPTION ICI
+                { label: 'Achat Prenium', value: 'prenium', emoji: '💎' }, // <-- NOUVELLE OPTION ICI
                 { label: 'Partenariat / Collaboration', value: 'colab', emoji: '🤝' },
                 { label: 'Question Générale', value: 'questions', emoji: '❓' },
                 { label: 'Autre Demande', value: 'autre', emoji: '📝' }
