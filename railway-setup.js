@@ -13,7 +13,8 @@ const botsConfig = {
     "ChadoxX_TICKET": { token: process.env.TOKEN_CHADOXX_TICKET },
     "irisstudio_protect": { token: process.env.TOKEN_PROTECT },
     "Irisstudio_ticket": { token: process.env.TOKEN_IRIS_TICKET },
-    "BCSO": { token: process.env.TOKEN_BCSO }
+    "BCSO": { token: process.env.TOKEN_BCSO },
+    "veyz": { token: process.env.TOKEN_VEYZ } // <-- Le nouveau dossier est ajouté ici
 };
 
 console.log("🛠️ Génération des fichiers config.json pour Railway...");
