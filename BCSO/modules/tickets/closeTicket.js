@@ -16,27 +16,39 @@ module.exports = (client) => {
                 return interaction.editReply({ content: "❌ Salon d'archive introuvable." });
             }
 
-            await interaction.editReply({ content: "⏳ Fusion des fils et création de l'archive unique en cours..." });
+            await interaction.editReply({ content: "⏳ Organisation du dossier par chapitres en cours..." });
 
-            // 1. Tableau qui va contenir absolument TOUS les messages
+            // Ce tableau va contenir les messages triés PAR SECTION, pas par ordre chronologique global
             let allMessages = [];
 
-            // 2. On aspire les messages du salon principal
+            // 1. On récupère et on trie les messages du salon principal
             const mainMessages = await channel.messages.fetch({ limit: 100 });
-            allMessages.push(...mainMessages.values());
+            const sortedMain = Array.from(mainMessages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+            allMessages.push(...sortedMain);
 
-            // 3. On aspire les messages de CHAQUE fil ouvert
+            // 2. On boucle sur chaque fil pour créer les chapitres
             const fetchedThreads = await channel.threads.fetch();
             for (const [threadId, thread] of fetchedThreads.threads) {
+                
+                // On fait générer au bot un faux message de séparation dans le ticket
+                // Cela créera une grosse barre de titre dans le HTML
+                const separatorMsg = await channel.send({
+                    content: `\n> ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n> 📂 **DÉBUT DE LA SECTION : ${thread.name.toUpperCase()}**\n> ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n`
+                });
+
+                // On ajoute ce séparateur à notre liste de messages
+                allMessages.push(separatorMsg);
+
+                // On récupère les messages de ce fil spécifique
                 const threadMessages = await thread.messages.fetch({ limit: 100 });
-                allMessages.push(...threadMessages.values());
+                const sortedThread = Array.from(threadMessages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+                
+                // On ajoute les messages du fil JUSTE APRÈS le séparateur
+                allMessages.push(...sortedThread);
             }
 
-            // 4. On trie le tout par ordre chronologique (du plus vieux au plus récent)
-            allMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-            // 5. On utilise "generateFromMessages" au lieu de "createTranscript"
-            // Cela force le module à créer une page simple avec tous nos messages fusionnés
+            // 3. Génération du HTML à partir de notre tableau parfaitement organisé
+            // Le module va lire notre tableau et dessiner la page exactement dans cet ordre
             const transcript = await discordTranscripts.generateFromMessages(allMessages, channel, {
                 returnBuffer: false,
                 filename: `${channel.name}.html`,
@@ -44,15 +56,15 @@ module.exports = (client) => {
                 poweredBy: false
             });
 
-            // 6. Envoi de l'archive unique
+            // 4. Envoi de l'archive unique et bien classée
             await archiveChannel.send({
-                content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>\n*Tous les fils ont été fusionnés chronologiquement dans ce fichier.*`,
+                content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>\n*Les données ont été classées par section (Rapport, Suspects, etc.).*`,
                 files: [transcript]
             });
 
-            await interaction.editReply({ content: "✅ Dossier archivé avec succès (1 seul fichier). Suppression dans 3s..." });
+            await interaction.editReply({ content: "✅ Dossier organisé et archivé avec succès. Suppression dans 3s..." });
 
-            // 7. Suppression du salon
+            // 5. Suppression
             setTimeout(() => {
                 channel.delete().catch(err => console.error("Erreur suppression:", err));
             }, 3000);
