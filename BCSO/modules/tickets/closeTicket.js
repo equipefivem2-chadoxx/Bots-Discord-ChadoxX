@@ -6,7 +6,6 @@ module.exports = (client) => {
     client.on('interactionCreate', async (interaction) => {
         if (!interaction.isButton() || interaction.customId !== 'close_op_ticket') return;
 
-        // Réponse immédiate pour éviter le timeout
         await interaction.deferReply({ ephemeral: true });
 
         try {
@@ -17,8 +16,8 @@ module.exports = (client) => {
                 return interaction.editReply({ content: "❌ Salon d'archive introuvable." });
             }
 
-            // Génération du transcript avec inlineThreads: true
-            // Cela force l'affichage de tous les messages des fils dans la page principale
+            // Génération forcée avec traitement des fils
+            // Le paramètre 'inlineThreads' fusionne le contenu directement
             const transcript = await discordTranscripts.createTranscript(channel, {
                 limit: -1,
                 returnBuffer: false,
@@ -26,26 +25,28 @@ module.exports = (client) => {
                 saveImages: true,
                 poweredBy: false,
                 includeThreads: true,
-                inlineThreads: true // 👈 C'est la clé : tout est affiché, rien à cliquer !
+                inlineThreads: true
             });
 
-            // Envoi de l'archive
+            // Envoi du fichier
             await archiveChannel.send({
                 content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>`,
                 files: [transcript]
             });
 
-            await interaction.editReply({ content: "✅ Dossier archivé et fusionné avec succès. Suppression du salon dans 3s..." });
+            await interaction.editReply({ 
+                content: "✅ Dossier archivé. Tout l'historique (incluant les fils) est fusionné dans le fichier ci-dessus." 
+            });
 
-            // Suppression différée
+            // Suppression propre
             setTimeout(() => {
-                channel.delete().catch(err => console.error("Erreur lors de la suppression du salon:", err));
+                channel.delete().catch(err => console.error("Erreur suppression:", err));
             }, 3000);
 
         } catch (error) {
-            console.error("❌ Erreur critique lors de l'archivage:", error);
+            console.error("❌ Erreur critique:", error);
             await interaction.editReply({ 
-                content: "❌ Erreur lors de l'archivage. Vérifie que le bot a bien les permissions de lire les messages et de supprimer les salons." 
+                content: "❌ Erreur lors de l'archivage. Assure-toi que le bot a accès à tous les fils." 
             }).catch(() => {});
         }
     });
