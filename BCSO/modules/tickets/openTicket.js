@@ -1,18 +1,18 @@
-const { ChannelType, PermissionsBitField } = require('discord.js');
+const { ChannelType, PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const config = require('../../config.js');
 
 module.exports = (client) => {
     client.on('interactionCreate', async (interaction) => {
         if (!interaction.isButton() || interaction.customId !== 'open_op_ticket') return;
 
-        // On dit à Discord qu'on traite la demande
+        // On fait patienter l'interaction
         await interaction.deferReply({ ephemeral: true });
 
         try {
             const guild = interaction.guild;
             const cleanName = interaction.user.username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
-            // 1. On prépare les permissions de base (le serveur caché + le créateur autorisé)
+            // 1. Permissions (Les staffs voient le salon, mais sans être ping)
             const channelPermissions = [
                 {
                     id: guild.id,
@@ -24,9 +24,7 @@ module.exports = (client) => {
                 }
             ];
 
-            // 2. On ajoute dynamiquement les rôles de ton tableau allowedRolesCommand
             config.allowedRolesCommand.forEach(roleId => {
-                // Filtre de sécurité : on ignore l'ID par défaut si tu ne l'as pas remplacé
                 if (roleId && roleId !== "ID_DU_ROLE_2") {
                     channelPermissions.push({
                         id: roleId,
@@ -35,14 +33,21 @@ module.exports = (client) => {
                 }
             });
 
-            // 3. Création du salon avec nos permissions dynamiques
+            // 2. Création du salon avec le tag 🟠 "En cours" par défaut
             const ticketChannel = await guild.channels.create({
-                name: `ticket-opération-${cleanName}`,
+                name: `🟠-op-${cleanName}`,
                 type: ChannelType.GuildText,
                 parent: config.ticketCategoryId, 
                 permissionOverwrites: channelPermissions,
             });
 
+            // 3. Construction du Premier Embed (Consignes)
+            const embedInstructions = new EmbedBuilder()
+                .setTitle("📁 DOSSIER D'OPÉRATION")
+                .setDescription("Bienvenue dans ce dossier d'opération.\n⚠️ **A la fin vous devez le remplir dans son intégralité.** Vous en avez l'entière responsabilité.\n\n🛠️ **Commandes de gestion :**\n`!rename [nom]` • `!close`\n\n📊 **Codes Statut (à modifier dans le nom) :**\n🟢 Traité | 🔴 Non traité | 🟠 En cours | 🟡 Convoc. | ⛔ Ne pas fermer\n\n🧵 **Fils à ouvrir :** Identités Suspects, Otages, Photos, Voitures, Unités.\n\n**N'oubliez pas de rename le dossier dès le début de l'opération !**")
+                .setColor('#E74C3C'); // Liseré Rouge
+
+            // 4. Construction du Deuxième Embed (Le Template à copier)
             const templateRapport = `╔════════════════════╗
 🚨 OPÉRATION 🚨
 ╚════════════════════╝
@@ -84,23 +89,32 @@ Décrivez précisément les faits, le déroulement de l'intervention et son dén
 
 Compte-rendu :`;
 
-            // 4. On prépare les mentions (pings) pour tous les rôles autorisés
-            const rolesToPing = config.allowedRolesCommand
-                .filter(id => id !== "ID_DU_ROLE_2")
-                .map(id => `<@&${id}>`)
-                .join(' ');
+            const embedTemplate = new EmbedBuilder()
+                .setDescription(`*Copiez le bloc ci-dessous pour votre rapport d'opération :*\n\n\`\`\`markdown\n${templateRapport}\n\`\`\``)
+                .setColor('#3498DB'); // Liseré Bleu
 
+            // 5. Le Bouton de fermeture
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('close_op_ticket')
+                    .setLabel('Fermer le dossier')
+                    .setEmoji('🔒')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+            // 6. Envoi final dans le ticket
             await ticketChannel.send({ 
-                // Le bot va ping le créateur et tous les rôles du tableau
-                content: `Salut <@${interaction.user.id}> | ${rolesToPing}\nVoici votre formulaire d'opération à remplir :\n\n\`\`\`text\n${templateRapport}\n\`\`\``
+                content: `📢 <@${interaction.user.id}> a ouvert un dossier d'opération !`, 
+                embeds: [embedInstructions, embedTemplate],
+                components: [row]
             });
 
-            // Validation finale
+            // Validation silencieuse pour l'utilisateur
             await interaction.editReply({ content: `✅ Ton dossier a été ouvert : <#${ticketChannel.id}>` });
 
         } catch (error) {
             console.error("❌ ERREUR CRÉATION TICKET :", error);
-            await interaction.editReply({ content: `❌ Erreur lors de la création du ticket. Vérifie que le bot a la permission "Gérer les salons" et que les IDs dans config.js sont corrects.` });
+            await interaction.editReply({ content: `❌ Erreur lors de la création du ticket. Vérifie tes configurations.` });
         }
     });
 };
