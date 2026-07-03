@@ -19,6 +19,7 @@ module.exports = (client) => {
                 filename: `${channel.name}.html`,
                 saveImages: true, // ⚠️ C'est ça qui garantit que les images ne meurent jamais
                 poweredBy: false
+                includeThreads: true
             });
 
             // Envoi dans les archives
