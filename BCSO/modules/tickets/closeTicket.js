@@ -18,10 +18,9 @@ module.exports = (client) => {
 
             await interaction.editReply({ content: "⏳ Organisation du dossier par chapitres en cours..." });
 
-            // Ce tableau va contenir les messages triés PAR SECTION, pas par ordre chronologique global
             let allMessages = [];
 
-            // 1. On récupère et on trie les messages du salon principal
+            // 1. On récupère les messages du salon principal
             const mainMessages = await channel.messages.fetch({ limit: 100 });
             const sortedMain = Array.from(mainMessages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
             allMessages.push(...sortedMain);
@@ -29,26 +28,17 @@ module.exports = (client) => {
             // 2. On boucle sur chaque fil pour créer les chapitres
             const fetchedThreads = await channel.threads.fetch();
             for (const [threadId, thread] of fetchedThreads.threads) {
-                
-                // On fait générer au bot un faux message de séparation dans le ticket
-                // Cela créera une grosse barre de titre dans le HTML
                 const separatorMsg = await channel.send({
                     content: `\n> ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n> 📂 **DÉBUT DE LA SECTION : ${thread.name.toUpperCase()}**\n> ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n`
                 });
-
-                // On ajoute ce séparateur à notre liste de messages
                 allMessages.push(separatorMsg);
 
-                // On récupère les messages de ce fil spécifique
                 const threadMessages = await thread.messages.fetch({ limit: 100 });
                 const sortedThread = Array.from(threadMessages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-                
-                // On ajoute les messages du fil JUSTE APRÈS le séparateur
                 allMessages.push(...sortedThread);
             }
 
-            // 3. Génération du HTML à partir de notre tableau parfaitement organisé
-            // Le module va lire notre tableau et dessiner la page exactement dans cet ordre
+            // 3. Génération Tentative 1 : Qualité MAX (Images intégrées)
             const transcript = await discordTranscripts.generateFromMessages(allMessages, channel, {
                 returnBuffer: false,
                 filename: `${channel.name}.html`,
@@ -56,11 +46,35 @@ module.exports = (client) => {
                 poweredBy: false
             });
 
-            // 4. Envoi de l'archive unique et bien classée
-            await archiveChannel.send({
-                content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>\n*Les données ont été classées par section (Rapport, Suspects, etc.).*`,
-                files: [transcript]
-            });
+            // 4. Envoi avec bouclier anti-crash 🛡️
+            try {
+                // On essaie d'envoyer le fichier lourd
+                await archiveChannel.send({
+                    content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>\n*Les données ont été classées par section.*`,
+                    files: [transcript]
+                });
+            } catch (sendError) {
+                // Si l'erreur est 40005 (Entity too large), on active le plan B
+                if (sendError.code === 40005) {
+                    console.warn(`⚠️ Fichier trop lourd pour ${channel.name}, génération de la version allégée...`);
+                    
+                    // On regénère en passant saveImages à FALSE
+                    const lightTranscript = await discordTranscripts.generateFromMessages(allMessages, channel, {
+                        returnBuffer: false,
+                        filename: `LIGHT-${channel.name}.html`,
+                        saveImages: false, // 👈 Le Plan B est ici
+                        poweredBy: false
+                    });
+
+                    await archiveChannel.send({
+                        content: `⚠️ **Avertissement :** Le dossier d'origine contenait trop de photos et dépassait la limite de Discord (25 Mo).\nVoici la version "Allégée" générée automatiquement (les images utilisent des liens externes).\n\n📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>`,
+                        files: [lightTranscript]
+                    });
+                } else {
+                    // Si c'est une autre erreur bizarre, on la laisse remonter
+                    throw sendError; 
+                }
+            }
 
             await interaction.editReply({ content: "✅ Dossier organisé et archivé avec succès. Suppression dans 3s..." });
 
