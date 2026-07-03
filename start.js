@@ -16,7 +16,7 @@ const bots = [
     { name: "NUXA", dir: "NUXA", file: "index.js" },
     { name: "ChadoxX TICKET", dir: "chadoxxticket", file: "index.js" },
     { name: "IrisStudio PROTECT", dir: "irisstudio_protect", file: "index.js" },
-    { name: "IrisStudio TICKET", dir: "Irisstudio_ticket", file: "index.js" }
+    { name: "IrisStudio TICKET", dir: "Irisstudio_ticket", file: "index.js" }, 
     { name: "BCSO", dir: "BCSO", file: "index.js" }
 ];
 
