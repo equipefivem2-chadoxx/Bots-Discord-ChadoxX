@@ -5,36 +5,45 @@ module.exports = (client) => {
     client.on('interactionCreate', async (interaction) => {
         if (!interaction.isButton() || interaction.customId !== 'open_op_ticket') return;
 
+        // On dit à Discord qu'on traite la demande
         await interaction.deferReply({ ephemeral: true });
 
-        const guild = interaction.guild;
-        
-        // Nettoyage du pseudo (retire les caractères spéciaux et les espaces)
-        const cleanName = interaction.user.username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        try {
+            const guild = interaction.guild;
+            const cleanName = interaction.user.username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
-        // Création du salon de ticket avec le nouveau nom
-        const ticketChannel = await guild.channels.create({
-            name: `ticket-opération-${cleanName}`,
-            type: ChannelType.GuildText,
-            parent: config.ticketCategoryId,
-            permissionOverwrites: [
+            // 1. On prépare les permissions de base (le serveur caché + le créateur autorisé)
+            const channelPermissions = [
                 {
-                    id: guild.id, // @everyone ne voit rien
+                    id: guild.id,
                     deny: [PermissionsBitField.Flags.ViewChannel],
                 },
                 {
-                    id: interaction.user.id, // L'agent voit son ticket
-                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles],
-                },
-                {
-                    id: config.bcsoRoleId, // Les hauts gradés BCSO voient le ticket
+                    id: interaction.user.id,
                     allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles],
                 }
-            ],
-        });
+            ];
 
-        // Ton template de rapport exact
-        const templateRapport = `╔════════════════════╗
+            // 2. On ajoute dynamiquement les rôles de ton tableau allowedRolesCommand
+            config.allowedRolesCommand.forEach(roleId => {
+                // Filtre de sécurité : on ignore l'ID par défaut si tu ne l'as pas remplacé
+                if (roleId && roleId !== "ID_DU_ROLE_2") {
+                    channelPermissions.push({
+                        id: roleId,
+                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles],
+                    });
+                }
+            });
+
+            // 3. Création du salon avec nos permissions dynamiques
+            const ticketChannel = await guild.channels.create({
+                name: `ticket-opération-${cleanName}`,
+                type: ChannelType.GuildText,
+                parent: config.ticketCategoryId, 
+                permissionOverwrites: channelPermissions,
+            });
+
+            const templateRapport = `╔════════════════════╗
 🚨 OPÉRATION 🚨
 ╚════════════════════╝
 
@@ -75,12 +84,23 @@ Décrivez précisément les faits, le déroulement de l'intervention et son dén
 
 Compte-rendu :`;
 
-        // Le bot ping le créateur et le rôle BCSO, puis envoie le formulaire
-        await ticketChannel.send({ 
-            content: `Salut <@${interaction.user.id}> | <@&${config.bcsoRoleId}>\nVoici votre formulaire d'opération à remplir :\n\n\`\`\`text\n${templateRapport}\n\`\`\``
-        });
+            // 4. On prépare les mentions (pings) pour tous les rôles autorisés
+            const rolesToPing = config.allowedRolesCommand
+                .filter(id => id !== "ID_DU_ROLE_2")
+                .map(id => `<@&${id}>`)
+                .join(' ');
 
-        // Confirme à l'utilisateur que le salon est prêt
-        await interaction.editReply({ content: `✅ Ton dossier a été ouvert : <#${ticketChannel.id}>` });
+            await ticketChannel.send({ 
+                // Le bot va ping le créateur et tous les rôles du tableau
+                content: `Salut <@${interaction.user.id}> | ${rolesToPing}\nVoici votre formulaire d'opération à remplir :\n\n\`\`\`text\n${templateRapport}\n\`\`\``
+            });
+
+            // Validation finale
+            await interaction.editReply({ content: `✅ Ton dossier a été ouvert : <#${ticketChannel.id}>` });
+
+        } catch (error) {
+            console.error("❌ ERREUR CRÉATION TICKET :", error);
+            await interaction.editReply({ content: `❌ Erreur lors de la création du ticket. Vérifie que le bot a la permission "Gérer les salons" et que les IDs dans config.js sont corrects.` });
+        }
     });
 };
