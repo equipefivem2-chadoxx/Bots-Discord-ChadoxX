@@ -3,7 +3,7 @@ module.exports = {
     guildId: "1522570075603996703",
     ticketCategoryId: "1522570076073627719", 
     archiveChannelId: "1522592674094387210",
-    bcsoRoleId: "ID_ROLE_TEST_STAFF",
+    allowedRolesCommand: ["1522593831093276672", "ID_DU_ROLE_2"],
 
     // 🎨 Design & Visuel (Facile à modifier pour la prod)
     embedColor: "#F5F5DC", // Code couleur Beige clair (tu peux mettre un Hex code vert si tu préfères)
