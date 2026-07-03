@@ -6,7 +6,7 @@ module.exports = (client) => {
     client.on('interactionCreate', async (interaction) => {
         if (!interaction.isButton() || interaction.customId !== 'close_op_ticket') return;
 
-        // 1. Réponse immédiate pour éviter l'échec d'interaction
+        // Réponse immédiate pour éviter le timeout
         await interaction.deferReply({ ephemeral: true });
 
         try {
@@ -17,35 +17,36 @@ module.exports = (client) => {
                 return interaction.editReply({ content: "❌ Salon d'archive introuvable." });
             }
 
-            // 2. Génération du transcript
-            // On s'assure de passer un objet AttachmentBuilder correct
+            // Génération du transcript avec inlineThreads: true
+            // Cela force l'affichage de tous les messages des fils dans la page principale
             const transcript = await discordTranscripts.createTranscript(channel, {
                 limit: -1,
                 returnBuffer: false,
                 filename: `${channel.name}.html`,
                 saveImages: true,
                 poweredBy: false,
-                includeThreads: true
+                includeThreads: true,
+                inlineThreads: true // 👈 C'est la clé : tout est affiché, rien à cliquer !
             });
 
-            // 3. Envoi dans les archives
+            // Envoi de l'archive
             await archiveChannel.send({
                 content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>`,
                 files: [transcript]
             });
 
-            // 4. Feedback final
-            await interaction.editReply({ content: "✅ Transcript généré et archivé. Suppression du salon dans 3s..." });
+            await interaction.editReply({ content: "✅ Dossier archivé et fusionné avec succès. Suppression du salon dans 3s..." });
 
-            // 5. Suppression retardée
+            // Suppression différée
             setTimeout(() => {
-                channel.delete().catch(err => console.error("Erreur suppression:", err));
+                channel.delete().catch(err => console.error("Erreur lors de la suppression du salon:", err));
             }, 3000);
 
         } catch (error) {
-            console.error("❌ Erreur transcript:", error);
-            // Si on a déjà répondu, on utilise followUp, sinon editReply
-            await interaction.editReply({ content: "❌ Erreur lors de l'archivage. Vérifie les logs du bot." }).catch(() => {});
+            console.error("❌ Erreur critique lors de l'archivage:", error);
+            await interaction.editReply({ 
+                content: "❌ Erreur lors de l'archivage. Vérifie que le bot a bien les permissions de lire les messages et de supprimer les salons." 
+            }).catch(() => {});
         }
     });
 };
