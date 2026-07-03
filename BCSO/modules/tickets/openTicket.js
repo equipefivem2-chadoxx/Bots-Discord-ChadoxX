@@ -47,11 +47,11 @@ module.exports = (client) => {
 
             const embedInstructions = new EmbedBuilder()
                 .setTitle("📁 DOSSIER D'OPÉRATION")
-                .setDescription("Bienvenue dans ce dossier d'opération.\n⚠️ **A la fin vous devez le remplir dans son intégralité.** Vous en avez l'entière responsabilité.\n\n🛠️ **Commandes de gestion :**\n`!rename [nom]` • `!close`\n\n📊 **Codes Statut (à modifier dans le nom) :**\n🟢 Traité | 🔴 Non traité | 🟠 En cours | 🟡 Convoc. | ⛔ Ne pas fermer\n\n🧵 **Fils à ouvrir :** Identités Suspects, Otages, Photos, Voitures, Unités.\n\n**N'oubliez pas de rename le dossier dès le début de l'opération !**")
+                .setDescription("Bienvenue dans ce dossier d'opération.\n⚠️ **A la fin vous devez le remplir dans son intégralité.** Vous en avez l'entière responsabilité.\n\n🛠️ **Commandes de gestion :**\n`/rename [nom]` • `/close`\n\n📊 **Codes Statut (à modifier dans le nom) :**\n🟢 Traité | 🔴 Non traité | 🟠 En cours | 🟡 Convoc. | ⛔ Ne pas fermer\n\n🧵 **Fils à ouvrir :** Suspects, Otages, Photos/Preuves, Voitures, Unités.\n\n**N'oubliez pas de rename le dossier dès le début de l'opération !**")
                 .setColor('#E74C3C');
 
             const templateRapport = `╔════════════════════╗
-🚨 OPÉRATION 🚨
+🚨 TITRE OPÉRATION 🚨
 ╚════════════════════╝
 
 📅 Date / Heure :
