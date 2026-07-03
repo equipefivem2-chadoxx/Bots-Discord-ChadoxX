@@ -1,8 +1,7 @@
-// bot-bcso/index.js
 const { Client, GatewayIntentBits } = require('discord.js');
 
-// On récupère le token spécifique au BCSO
-const token = process.env.TOKEN_BCSO;
+// Ton start.js transmet automatiquement les variables Railway !
+const token = process.env.TOKEN_BCSO; 
 
 const client = new Client({ 
     intents: [
@@ -15,9 +14,12 @@ client.once('ready', () => {
     console.log(`✅ [Bot BCSO] Connecté avec succès en tant que ${client.user.tag}`);
 });
 
-// Connexion du bot
 if (!token) {
-    console.error("❌ [Bot BCSO] Erreur : Le TOKEN_BCSO est introuvable dans le fichier .env !");
+    console.error("❌ [Bot BCSO] CRASH : Le TOKEN_BCSO est introuvable sur Railway (ou dans ton .env) !");
+    process.exit(1); // Fait crash le process pour que ton webhook IrisFA le signale
 } else {
-    client.login(token).catch(err => console.error("❌ [Bot BCSO] Erreur de connexion :", err));
+    client.login(token).catch(err => {
+        console.error("❌ [Bot BCSO] Erreur de connexion :", err);
+        process.exit(1);
+    });
 }
