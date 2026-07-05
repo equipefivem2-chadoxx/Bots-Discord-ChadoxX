@@ -18,6 +18,18 @@ module.exports = {
             });
         }
 
+        // 👇 NOUVEAU : On récupère le salon spécifique
+        const targetChannelId = '1427848018698440764';
+        const targetChannel = interaction.guild.channels.cache.get(targetChannelId);
+
+        // Sécurité : on vérifie que le salon existe bien
+        if (!targetChannel) {
+            return interaction.reply({ 
+                content: `❌ Impossible de trouver le salon cible (ID: ${targetChannelId}). Assure-toi que le bot y a accès.`, 
+                ephemeral: true 
+            });
+        }
+
         const embed = new EmbedBuilder()
             .setAuthor({ name: "🚓 BUREAU DES OPÉRATIONS - BCSO" })
             .setTitle("Création d'un nouveau dossier d'opération")
@@ -34,9 +46,13 @@ module.exports = {
                 .setStyle(ButtonStyle.Primary)
         );
 
-        await interaction.channel.send({ embeds: [embed], components: [row] });
+        // 👇 NOUVEAU : On envoie le panel dans le salon cible au lieu du salon actuel
+        await targetChannel.send({ embeds: [embed], components: [row] });
         
-        // Réponse invisible pour confirmer que ça a marché
-        await interaction.reply({ content: "✅ Panel généré avec succès.", ephemeral: true });
+        // Réponse invisible pour confirmer que ça a marché, avec mention du salon
+        await interaction.reply({ 
+            content: `✅ Panel généré avec succès dans le salon ${targetChannel}.`, 
+            ephemeral: true 
+        });
     }
 };
