@@ -1,6 +1,6 @@
 const { AttachmentBuilder } = require('discord.js');
 const discordTranscripts = require('discord-html-transcripts');
-const axios = require('axios'); // 🚀 AJOUTÉ : Importation d'Axios pour l'API web
+const axios = require('axios'); // 🚀 Importation d'Axios pour l'API web
 const config = require('../../config.js');
 
 module.exports = (client) => {
@@ -49,21 +49,17 @@ module.exports = (client) => {
 
             // 4. Envoi avec bouclier anti-crash 🛡️
             try {
-                // On essaie d'envoyer le fichier lourd
                 await archiveChannel.send({
                     content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>\n*Les données ont été classées par section.*`,
                     files: [transcript]
                 });
             } catch (sendError) {
-                // Si l'erreur est 40005 (Entity too large), on active le plan B
                 if (sendError.code === 40005) {
                     console.warn(`⚠️ Fichier trop lourd pour ${channel.name}, génération de la version allégée...`);
-                    
-                    // On regénère en passant saveImages à FALSE
                     const lightTranscript = await discordTranscripts.generateFromMessages(allMessages, channel, {
                         returnBuffer: false,
                         filename: `LIGHT-${channel.name}.html`,
-                        saveImages: false, // 👈 Le Plan B est ici
+                        saveImages: false,
                         poweredBy: false
                     });
 
@@ -72,37 +68,43 @@ module.exports = (client) => {
                         files: [lightTranscript]
                     });
                 } else {
-                    // Si c'est une autre erreur bizarre, on la laisse remonter
                     throw sendError; 
                 }
             }
 
-            // 🚀 NOUVEAU : 5. Envoi vers le site web BCSO (MDT)
+            // 5. Envoi vers le site web BCSO (MDT)
             await interaction.editReply({ content: "⏳ Synchronisation avec la base de données centrale BCSO..." });
             
             try {
-                // Formatage des messages pour le site web
-                const formattedMessages = allMessages.map(msg => ({
-                    author: msg.author ? msg.author.tag : 'Système',
-                    content: msg.content || '[Fichier ou image (voir archive Discord)]',
-                    timestamp: new Date(msg.createdTimestamp).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
-                }));
+                // 📸 DÉTECTION DES IMAGES POUR LE SITE WEB
+                const formattedMessages = allMessages.map(msg => {
+                    let content = msg.content || '';
+                    
+                    if (msg.attachments.size > 0) {
+                        const imageLinks = Array.from(msg.attachments.values()).map(a => a.url).join(' ');
+                        content = content ? `${content}\n[IMAGE]${imageLinks}` : `[IMAGE]${imageLinks}`;
+                    }
+
+                    return {
+                        author: msg.author ? msg.author.tag : 'Système',
+                        content: content || '*Message vide ou embed non pris en charge*',
+                        timestamp: new Date(msg.createdTimestamp).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
+                    };
+                });
 
                 const payload = {
                     ticketId: channel.id,
                     channelName: channel.name,
-                    openedBy: channel.topic || 'Agent', // Utilise le topic du salon, ou "Agent" par défaut
+                    openedBy: channel.topic || 'Agent',
                     closedBy: interaction.member ? interaction.member.displayName : interaction.user.username,
                     motif: channel.name.split('-')[0] || 'Dossier',
                     messages: formattedMessages
                 };
 
-                // Envoi à l'API de ton site web
                 await axios.post('https://bcso-noface.up.railway.app/api/tickets/transcript', payload);
                 
                 await interaction.editReply({ content: "✅ Dossier archivé et synchronisé avec succès. Suppression dans 3s..." });
 
-                // 6. Suppression sécurisée (seulement si l'envoi web a réussi)
                 setTimeout(() => {
                     channel.delete().catch(err => console.error("Erreur suppression:", err));
                 }, 3000);
