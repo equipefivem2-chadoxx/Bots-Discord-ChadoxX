@@ -1,13 +1,13 @@
 const axios = require('axios');
-const config = require('../../config.js');
-const { ChannelType } = require('discord.js'); // Importation officielle pour les types de salons
+// ⚠️ Attention : Utilise '../config.js' si ton fichier est dans "modules/" 
+// ou '../../config.js' s'il est dans "modules/tickets/"
+const config = require('../../config.js'); 
+const { ChannelType } = require('discord.js');
 
 module.exports = (client) => {
     
-    // Fonction qui compte et envoie au site web
     const syncTicketsCount = async () => {
         try {
-            // On s'assure de bien récupérer le serveur (fetch permet d'éviter les erreurs de cache vide)
             const guild = await client.guilds.fetch(config.guildId).catch(() => null);
             
             if (!guild) {
@@ -15,17 +15,21 @@ module.exports = (client) => {
                 return;
             }
 
-            // 🚀 CORRECTION : On force la récupération en temps réel de tous les salons du serveur
             const channels = await guild.channels.fetch();
 
-            // On filtre pour ne garder que les salons textes de la catégorie spécifique
+            // 🚀 NOUVEAU : Liste des ID des salons à ignorer dans le comptage
+            const salonsAIgnorer = [
+                '1427847879799869440', 
+                '1427848018698440764'
+            ];
+
             const openTicketsCount = channels.filter(c => 
                 c !== null && 
                 c.parentId === config.ticketCategoryId && 
-                c.type === ChannelType.GuildText // Plus propre et sûr que "0"
+                c.type === ChannelType.GuildText &&
+                !salonsAIgnorer.includes(c.id) // 🚀 La condition qui exclut tes deux salons
             ).size;
 
-            // On envoie la donnée exacte au site web
             await axios.post('https://bcso-noface.up.railway.app/api/tickets/sync-count', {
                 count: openTicketsCount
             });
@@ -37,9 +41,6 @@ module.exports = (client) => {
         }
     };
 
-    // Exécuter une première fois quand le bot démarre (après 10 secondes)
     setTimeout(syncTicketsCount, 10000);
-
-    // Ensuite, répéter toutes les 5 minutes (300 000 millisecondes)
     setInterval(syncTicketsCount, 300000);
 };
