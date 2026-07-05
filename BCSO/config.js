@@ -1,9 +1,9 @@
 module.exports = {
     // 🔴 IDs du Serveur de TEST
-    guildId: "1522570075603996703",
-    ticketCategoryId: "1522570076073627719", 
-    archiveChannelId: "1522592674094387210",
-    allowedRolesCommand: ["1522593831093276672", "ID_DU_ROLE_2"],
+    guildId: "1427651123606589442",
+    ticketCategoryId: "1427847738665472030", 
+    archiveChannelId: "1427847879799869440",
+    allowedRolesCommand: ["1427651123606589446", "ID_DU_ROLE_2"],
 
     // 🎨 Design & Visuel (Facile à modifier pour la prod)
     embedColor: "#F5F5DC", // Code couleur Beige clair (tu peux mettre un Hex code vert si tu préfères)
