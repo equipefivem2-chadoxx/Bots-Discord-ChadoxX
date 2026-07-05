@@ -1,5 +1,6 @@
 const { AttachmentBuilder } = require('discord.js');
 const discordTranscripts = require('discord-html-transcripts');
+const axios = require('axios'); // 🚀 AJOUTÉ : Importation d'Axios pour l'API web
 const config = require('../../config.js');
 
 module.exports = (client) => {
@@ -76,12 +77,41 @@ module.exports = (client) => {
                 }
             }
 
-            await interaction.editReply({ content: "✅ Dossier organisé et archivé avec succès. Suppression dans 3s..." });
+            // 🚀 NOUVEAU : 5. Envoi vers le site web BCSO (MDT)
+            await interaction.editReply({ content: "⏳ Synchronisation avec la base de données centrale BCSO..." });
+            
+            try {
+                // Formatage des messages pour le site web
+                const formattedMessages = allMessages.map(msg => ({
+                    author: msg.author ? msg.author.tag : 'Système',
+                    content: msg.content || '[Fichier ou image (voir archive Discord)]',
+                    timestamp: new Date(msg.createdTimestamp).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
+                }));
 
-            // 5. Suppression
-            setTimeout(() => {
-                channel.delete().catch(err => console.error("Erreur suppression:", err));
-            }, 3000);
+                const payload = {
+                    ticketId: channel.id,
+                    channelName: channel.name,
+                    openedBy: channel.topic || 'Agent', // Utilise le topic du salon, ou "Agent" par défaut
+                    closedBy: interaction.member ? interaction.member.displayName : interaction.user.username,
+                    motif: channel.name.split('-')[0] || 'Dossier',
+                    messages: formattedMessages
+                };
+
+                // Envoi à l'API de ton site web
+                await axios.post('https://bcso-noface.up.railway.app/api/tickets/transcript', payload);
+                
+                await interaction.editReply({ content: "✅ Dossier archivé et synchronisé avec succès. Suppression dans 3s..." });
+
+                // 6. Suppression sécurisée (seulement si l'envoi web a réussi)
+                setTimeout(() => {
+                    channel.delete().catch(err => console.error("Erreur suppression:", err));
+                }, 3000);
+
+            } catch (apiError) {
+                console.error("🔴 Erreur API web:", apiError.message);
+                await channel.send("⚠️ **Alerte Serveur Central :** Impossible de synchroniser ce dossier avec le MDT web. Le salon n'a **pas** été supprimé pour éviter la perte des données.");
+                await interaction.editReply({ content: "❌ Échec de la synchronisation web." });
+            }
 
         } catch (error) {
             console.error("❌ Erreur transcript complet:", error);
