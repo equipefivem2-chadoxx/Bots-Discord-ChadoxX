@@ -10,11 +10,10 @@ module.exports = (client) => {
         try {
             const guild = interaction.guild;
             
-            // 🔄 CHANGEMENT ICI : On récupère le pseudo spécifique au serveur (RP name)
+            // On récupère le pseudo spécifique au serveur (RP name)
             const pseudoServeur = interaction.member.displayName;
             
-            // On remplace les espaces par des tirets, et on supprime les caractères non autorisés (crochets, etc.)
-            // Exemple : "[41] - Jesse Langston" deviendra "41-jesse-langston"
+            // On remplace les espaces par des tirets, et on supprime les caractères non autorisés
             const cleanName = pseudoServeur.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
 
             const channelPermissions = [
@@ -37,11 +36,12 @@ module.exports = (client) => {
                 }
             });
 
-            // Création du salon avec le tag 🟠 et le pseudo RP
+            // Création du salon
             const ticketChannel = await guild.channels.create({
                 name: `🟠-op-${cleanName}`,
                 type: ChannelType.GuildText,
                 parent: config.ticketCategoryId, 
+                topic: pseudoServeur, // 🚀 AJOUT MAJEUR : On cache le nom du créateur dans le sujet du salon !
                 permissionOverwrites: channelPermissions,
             });
 
@@ -104,7 +104,6 @@ Compte-rendu :`;
             );
 
             await ticketChannel.send({ 
-                // La mention <@ID> affichera automatiquement le pseudo du serveur dans le chat Discord
                 content: `📢 <@${interaction.user.id}> a ouvert un dossier d'opération !`, 
                 embeds: [embedInstructions, embedTemplate],
                 components: [row]

@@ -18,11 +18,17 @@ module.exports = (client) => {
             const sortedMain = Array.from(mainMessages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
             allMessages.push(...sortedMain);
 
-            // 🚀 DÉTECTION DU CRÉATEUR : On prend l'auteur du tout premier message
-            let creatorName = 'Agent';
-            if (sortedMain.length > 0) {
-                const firstMsg = sortedMain[0];
-                creatorName = firstMsg.member ? firstMsg.member.displayName : firstMsg.author.username;
+            // 🚀 DÉTECTION DU CRÉATEUR : On utilise le Sujet (Topic) du salon qu'on a créé dans openTicket.js
+            let creatorName = channel.topic;
+            
+            // Sécurité au cas où le topic a été supprimé manuellement :
+            if (!creatorName) {
+                const firstMsg = sortedMain.find(m => m.content.includes("a ouvert un dossier d'opération"));
+                if (firstMsg && firstMsg.mentions.members.size > 0) {
+                    creatorName = firstMsg.mentions.members.first().displayName;
+                } else {
+                    creatorName = 'Agent Inconnu';
+                }
             }
 
             // 2. On récupère les fils
@@ -46,12 +52,12 @@ module.exports = (client) => {
                 // Détection des images
                 if (msg.attachments.size > 0) {
                     const imageLinks = Array.from(msg.attachments.values()).map(a => a.url).join(' ');
-                    content = content ? `${content}\n[IMAGE]${imageLinks}` : `[IMAGE]${imageLinks}`;
+                    // 🚀 AJOUT D'ESPACES AUTOUR DU TAG POUR ÉVITER QUE LES URLS FUSIONNENT
+                    content = content ? `${content} [IMAGE] ${imageLinks}` : `[IMAGE] ${imageLinks}`;
                 }
 
                 // Si le message n'est pas vide, on le sauvegarde pour le site
                 if (content !== '') {
-                    // 🚀 RÉCUPÉRATION DU RENAME (displayName) AU LIEU DU TAG DISCORD
                     const finalAuthorName = msg.member ? msg.member.displayName : (msg.author ? msg.author.username : 'Système');
 
                     formattedMessages.push({
@@ -66,7 +72,7 @@ module.exports = (client) => {
             const payload = {
                 ticketId: channel.id,
                 channelName: channel.name,
-                openedBy: creatorName, // 🚀 Intégration du créateur exact
+                openedBy: creatorName, // 🚀 Créateur infaillible
                 closedBy: interaction.member ? interaction.member.displayName : interaction.user.username,
                 motif: channel.name.split('-')[0] || 'Dossier',
                 messages: formattedMessages
