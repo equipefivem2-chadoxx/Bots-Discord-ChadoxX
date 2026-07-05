@@ -106,7 +106,7 @@ module.exports = (client) => {
 
             await axios.post('https://bcso-noface.up.railway.app/api/tickets/transcript', payload);
             
-            await interaction.editReply({ content: "✅ cDossier archivé sur le Discord et le MDT. Suppression dans 3s..." });
+            await interaction.editReply({ content: "✅ Dossier archivé sur le Discord et le MDT. Suppression dans 3s..." });
 
             setTimeout(() => {
                 channel.delete().catch(err => console.error("Erreur suppression:", err));
