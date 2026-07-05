@@ -13,10 +13,17 @@ module.exports = (client) => {
 
             let allMessages = [];
 
-            // 1. On récupère les messages du salon
+            // 1. On récupère les messages du salon principal
             const mainMessages = await channel.messages.fetch({ limit: 100 });
             const sortedMain = Array.from(mainMessages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
             allMessages.push(...sortedMain);
+
+            // 🚀 DÉTECTION DU CRÉATEUR : On prend l'auteur du tout premier message
+            let creatorName = 'Agent';
+            if (sortedMain.length > 0) {
+                const firstMsg = sortedMain[0];
+                creatorName = firstMsg.member ? firstMsg.member.displayName : firstMsg.author.username;
+            }
 
             // 2. On récupère les fils
             const fetchedThreads = await channel.threads.fetch();
@@ -31,7 +38,7 @@ module.exports = (client) => {
                 allMessages.push(...sortedThread);
             }
 
-            // 3. Formatage & Nettoyage (Fini les messages "vides")
+            // 3. Formatage & Nettoyage (Fini les messages "vides" et Pseudos Serveur)
             const formattedMessages = [];
             allMessages.forEach(msg => {
                 let content = msg.content ? msg.content.trim() : '';
@@ -44,8 +51,11 @@ module.exports = (client) => {
 
                 // Si le message n'est pas vide, on le sauvegarde pour le site
                 if (content !== '') {
+                    // 🚀 RÉCUPÉRATION DU RENAME (displayName) AU LIEU DU TAG DISCORD
+                    const finalAuthorName = msg.member ? msg.member.displayName : (msg.author ? msg.author.username : 'Système');
+
                     formattedMessages.push({
-                        author: msg.author ? msg.author.tag : 'Système',
+                        author: finalAuthorName,
                         content: content,
                         timestamp: new Date(msg.createdTimestamp).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
                     });
@@ -56,7 +66,7 @@ module.exports = (client) => {
             const payload = {
                 ticketId: channel.id,
                 channelName: channel.name,
-                openedBy: channel.topic || 'Agent',
+                openedBy: creatorName, // 🚀 Intégration du créateur exact
                 closedBy: interaction.member ? interaction.member.displayName : interaction.user.username,
                 motif: channel.name.split('-')[0] || 'Dossier',
                 messages: formattedMessages
