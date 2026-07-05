@@ -1,8 +1,8 @@
 module.exports = {
     // 🔴 IDs du Serveur de TEST
-    guildId: "1522570075603996703",
-    ticketCategoryId: "1522570076073627719", 
-    archiveChannelId: "1522592674094387210",
+    guildId: "1427651123606589442",
+    ticketCategoryId: "1427847738665472030", 
+    archiveChannelId: "1427847879799869440",
     allowedRolesCommand: ["1427651123606589446", "1522593831093276672"],
 
     // 🎨 Design & Visuel (Facile à modifier pour la prod)
