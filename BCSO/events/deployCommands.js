@@ -2,7 +2,7 @@
 const { REST, Routes, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const config = require('../config.js'); // 👈 On importe la config pour l'ID du serveur
+const config = require('../config.js');
 
 module.exports = (client) => {
     client.commands = new Collection();
@@ -11,10 +11,8 @@ module.exports = (client) => {
         const commandsArray = [];
         const commandsPath = path.join(__dirname, '../commands');
         
-        // Sécurité : si le dossier n'existe pas, on le crée
         if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath, { recursive: true });
 
-        // On lit les sous-dossiers
         const commandFolders = fs.readdirSync(commandsPath);
         
         for (const folder of commandFolders) {
@@ -35,17 +33,18 @@ module.exports = (client) => {
         if (commandsArray.length > 0) {
             const rest = new REST({ version: '10' }).setToken(process.env.TOKEN_BCSO);
             try {
-                // ⚡ CHANGEMENT ICI : On utilise applicationGuildCommands pour un affichage immédiat
+                // 1. PURGE DES COMMANDES GLOBALES (le doublon vient souvent de là)
+                await rest.put(Routes.applicationCommands(client.user.id), { body: [] });
+                
+                // 2. DÉPLOIEMENT SUR LA GUILDE
                 await rest.put(
                     Routes.applicationGuildCommands(client.user.id, config.guildId),
                     { body: commandsArray }
                 );
-                console.log(`✅ [Commandes BCSO] ${commandsArray.length} Slash Command(s) synchronisée(s) avec succès sur le serveur de test !`);
+                console.log(`✅ [Commandes BCSO] Synchronisation terminée : ${commandsArray.length} commande(s) active(s).`);
             } catch (error) {
                 console.error("❌ [Commandes BCSO] Erreur lors du déploiement :", error);
             }
-        } else {
-            console.log("⚠️ [Commandes BCSO] Aucune commande trouvée dans les dossiers.");
         }
     });
 };
