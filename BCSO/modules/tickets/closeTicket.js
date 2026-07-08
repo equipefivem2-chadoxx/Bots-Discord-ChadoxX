@@ -1,6 +1,6 @@
 const axios = require('axios');
 const config = require('../../config.js');
-const discordTranscripts = require('discord-html-transcripts'); // 🚀 RESTAURÉ
+const discordTranscripts = require('discord-html-transcripts');
 
 module.exports = (client) => {
     client.on('interactionCreate', async (interaction) => {
@@ -16,7 +16,7 @@ module.exports = (client) => {
                 return interaction.editReply({ content: "❌ Salon d'archive Discord introuvable dans la config." });
             }
 
-            await interaction.editReply({ content: "⏳ Génération de l'archive et synchronisation web..." });
+            await interaction.editReply({ content: "⏳ Analyse et téléchargement des preuves en cours..." });
 
             let allMessages = [];
 
@@ -36,7 +36,7 @@ module.exports = (client) => {
                 }
             }
 
-            // 2. On récupère les fils
+            // 2. On récupère les fils (Threads)
             const fetchedThreads = await channel.threads.fetch();
             for (const [threadId, thread] of fetchedThreads.threads) {
                 const separatorMsg = await channel.send({
@@ -49,14 +49,34 @@ module.exports = (client) => {
                 allMessages.push(...sortedThread);
             }
 
-            // 3. Formatage pour le Site Web
+            // 3. 🚀 SÉCURITÉ ABSOLUE : Téléchargement et encodage des images en Base64
             const formattedMessages = [];
-            allMessages.forEach(msg => {
+            
+            for (const msg of allMessages) {
                 let content = msg.content ? msg.content.trim() : '';
+                let base64Images = [];
                 
                 if (msg.attachments.size > 0) {
-                    const imageLinks = Array.from(msg.attachments.values()).map(a => a.url).join(' ');
-                    content = content ? `${content} [IMAGE] ${imageLinks}` : `[IMAGE] ${imageLinks}`;
+                    const attachments = Array.from(msg.attachments.values());
+                    for (const att of attachments) {
+                        // On ne traite que les images
+                        if (att.contentType && att.contentType.startsWith('image/')) {
+                            try {
+                                // On télécharge l'image depuis Discord avant de supprimer le salon
+                                const response = await axios.get(att.url, { responseType: 'arraybuffer' });
+                                const base64Data = Buffer.from(response.data, 'binary').toString('base64');
+                                const dataUri = `data:${att.contentType};base64,${base64Data}`;
+                                base64Images.push(dataUri);
+                            } catch (imgError) {
+                                console.error(`Erreur téléchargement image : ${att.url}`, imgError.message);
+                            }
+                        }
+                    }
+                }
+
+                // On attache les images sous format "[IMAGE] data:image/png;base64,....."
+                if (base64Images.length > 0) {
+                    content = content ? `${content} [IMAGE] ${base64Images.join(' ')}` : `[IMAGE] ${base64Images.join(' ')}`;
                 }
 
                 if (content !== '') {
@@ -67,13 +87,15 @@ module.exports = (client) => {
                         timestamp: new Date(msg.createdTimestamp).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
                     });
                 }
-            });
+            }
 
-            // 4. Génération de l'archive HTML Discord (Images incluses)
+            await interaction.editReply({ content: "⏳ Création des fichiers de sauvegarde..." });
+
+            // 4. Génération de l'archive HTML Discord (Images incluses ou allégée)
             const transcript = await discordTranscripts.generateFromMessages(allMessages, channel, {
                 returnBuffer: false,
                 filename: `${channel.name}.html`,
-                saveImages: true, // 🚀 Force la sauvegarde des images en Base64 pour contrer la sécurité Discord
+                saveImages: true,
                 poweredBy: false
             });
 
@@ -94,7 +116,7 @@ module.exports = (client) => {
                 }
             }
 
-            // 5. Envoi vers l'API du Site Web
+            // 5. Envoi vers l'API du Site Web (Maintenant l'API reçoit les images en "dur")
             const payload = {
                 ticketId: channel.id,
                 channelName: channel.name,
@@ -104,9 +126,11 @@ module.exports = (client) => {
                 messages: formattedMessages
             };
 
+            await interaction.editReply({ content: "⏳ Synchronisation avec la base de données..." });
+
             await axios.post('https://bcso-noface.up.railway.app/api/tickets/transcript', payload);
             
-            await interaction.editReply({ content: "✅ Dossier archivé sur le Discord et le MDT. Suppression dans 3s..." });
+            await interaction.editReply({ content: "✅ Dossier archivé (Preuves sécurisées à vie). Suppression dans 3s..." });
 
             setTimeout(() => {
                 channel.delete().catch(err => console.error("Erreur suppression:", err));
@@ -114,7 +138,7 @@ module.exports = (client) => {
 
         } catch (error) {
             console.error("❌ Erreur de clôture:", error);
-            await interaction.channel.send("⚠️ **Alerte Serveur Central :** Erreur lors de la fermeture du dossier.");
+            await interaction.channel.send("⚠️ **Alerte Serveur Central :** Erreur lors de la fermeture du dossier. (Taille des preuves potentiellement trop lourde)");
             await interaction.editReply({ content: "❌ Échec de la fermeture." }).catch(() => {});
         }
     });
