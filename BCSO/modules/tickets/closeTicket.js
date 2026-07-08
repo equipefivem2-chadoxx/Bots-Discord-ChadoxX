@@ -1,7 +1,7 @@
 const axios = require('axios');
 const config = require('../../config.js');
 const discordTranscripts = require('discord-html-transcripts');
-const cloudinary = require('../cloudinary/cloudinary.js'); // 🚀 L'import de ton nouveau module
+const cloudinary = require('../cloudinary/cloudinary.js'); // Import de Cloudinary
 
 module.exports = (client) => {
     client.on('interactionCreate', async (interaction) => {
@@ -62,14 +62,12 @@ module.exports = (client) => {
                     for (const att of attachments) {
                         if (att.contentType && att.contentType.startsWith('image/')) {
                             try {
-                                // On télécharge l'image depuis Discord...
                                 const response = await axios.get(att.url, { responseType: 'arraybuffer' });
                                 const buffer = Buffer.from(response.data, 'binary');
                                 
-                                // ... Puis on l'uploade immédiatement sur Cloudinary
                                 const cloudinaryResult = await new Promise((resolve, reject) => {
                                     const uploadStream = cloudinary.uploader.upload_stream(
-                                        { folder: "bcso_preuves" }, // Crée un dossier propre sur ton Cloudinary
+                                        { folder: "bcso_preuves" },
                                         (error, result) => {
                                             if (result) resolve(result);
                                             else reject(error);
@@ -78,9 +76,7 @@ module.exports = (client) => {
                                     uploadStream.end(buffer);
                                 });
 
-                                // On récupère le lien sécurisé (https) de Cloudinary
                                 imageUrls.push(cloudinaryResult.secure_url);
-                                
                             } catch (imgError) {
                                 console.error(`❌ Erreur Upload Cloudinary :`, imgError);
                             }
@@ -88,7 +84,6 @@ module.exports = (client) => {
                     }
                 }
 
-                // On attache les liens Cloudinary au message : "[IMAGE] https://res.cloudinary.com/..."
                 if (imageUrls.length > 0) {
                     content = content ? `${content} [IMAGE] ${imageUrls.join(' ')}` : `[IMAGE] ${imageUrls.join(' ')}`;
                 }
@@ -105,29 +100,24 @@ module.exports = (client) => {
 
             await interaction.editReply({ content: "⏳ Finalisation de la sauvegarde HTML..." });
 
-            // 4. Archive HTML Discord classique
+            // 4. Archive HTML Discord (Version optimisée Web)
             const transcript = await discordTranscripts.generateFromMessages(allMessages, channel, {
-                returnBuffer: false, filename: `${channel.name}.html`, saveImages: true, poweredBy: false
+                returnBuffer: false, 
+                filename: `${channel.name}.html`, 
+                saveImages: false, // 🚀 IMAGES DÉSACTIVÉES POUR ÉVITER LA LIMITE DISCORD
+                poweredBy: false
             });
 
             try {
                 await archiveChannel.send({
-                    content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>`,
+                    content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>\n🌐 *Toutes les photos de l'intervention sont stockées et visibles sur le MDT Web.*`,
                     files: [transcript]
                 });
             } catch (sendError) {
-                if (sendError.code === 40005) {
-                    const lightTranscript = await discordTranscripts.generateFromMessages(allMessages, channel, {
-                        returnBuffer: false, filename: `LIGHT-${channel.name}.html`, saveImages: false, poweredBy: false
-                    });
-                    await archiveChannel.send({
-                        content: `⚠️ Fichier d'origine trop lourd. Version "Allégée".\n📁 **Archive :** ${channel.name}`,
-                        files: [lightTranscript]
-                    });
-                }
+                console.error("❌ Erreur envoi transcript:", sendError);
             }
 
-            // 5. Envoi vers le Site Web (Payload ultra-léger, seulement du texte et des URLs)
+            // 5. Envoi vers le Site Web
             const payload = {
                 ticketId: channel.id,
                 channelName: channel.name,
@@ -147,7 +137,7 @@ module.exports = (client) => {
 
         } catch (error) {
             console.error("❌ Erreur de clôture:", error);
-            await interaction.editReply({ content: "❌ Une erreur est survenue. Les preuves étaient peut-être trop volumineuses." }).catch(() => {});
+            await interaction.editReply({ content: "❌ Une erreur est survenue lors de la fermeture." }).catch(() => {});
         }
     });
 };
