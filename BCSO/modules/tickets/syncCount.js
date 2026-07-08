@@ -17,7 +17,7 @@ module.exports = (client) => {
 
             const channels = await guild.channels.fetch();
 
-            // 🚀 NOUVEAU : Liste des ID des salons à ignorer dans le comptage
+            // 🚀 Liste des ID des salons à ignorer dans le comptage
             const salonsAIgnorer = [
                 '1427847879799869440', 
                 '1427848018698440764'
@@ -41,6 +41,28 @@ module.exports = (client) => {
         }
     };
 
+    // ⏳ 1. Synchronisation automatique au démarrage (après 10 secondes)
     setTimeout(syncTicketsCount, 10000);
+    
+    // ⏳ 2. Synchronisation de sécurité en tâche de fond (toutes les 5 minutes au cas où)
     setInterval(syncTicketsCount, 300000);
+
+    // 🚀 3. EN DIRECT : Dès qu'un salon est CRÉÉ dans Discord
+    client.on('channelCreate', async (channel) => {
+        // On vérifie si ce salon est créé dans la catégorie des tickets
+        if (channel.parentId === config.ticketCategoryId) {
+            console.log(`[SYNC] Nouveau ticket détecté (${channel.name}). Envoi au site...`);
+            // On attend 1.5 seconde pour laisser le temps à Discord de stabiliser le salon dans son API
+            setTimeout(syncTicketsCount, 1500);
+        }
+    });
+
+    // 🚀 4. EN DIRECT : Dès qu'un salon est SUPPRIMÉ sur Discord (Fermeture/Suppression de ticket)
+    client.on('channelDelete', async (channel) => {
+        // On vérifie si le salon supprimé faisait partie de la catégorie des tickets
+        if (channel.parentId === config.ticketCategoryId) {
+            console.log(`[SYNC] Ticket supprimé/fermé (${channel.name}). Envoi au site...`);
+            setTimeout(syncTicketsCount, 1000);
+        }
+    });
 };
