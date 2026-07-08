@@ -5,7 +5,7 @@ module.exports = {
     archiveChannelId: "1427847879799869440",
     
     // ⚠️ ATTENTION : Si ces rôles n'existent pas sur ce serveur, la création du ticket va crasher !
-    allowedRolesCommand: ["1427651123606589446", "1522593831093276672"],
+    allowedRolesCommand: ["1427651123606589446", "1427651124286197869"],
 
     // 🎨 Design & Visuel
     embedColor: "#F5F5DC",
