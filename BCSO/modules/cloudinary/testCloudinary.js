@@ -1,6 +1,6 @@
 const cloudinary = require("./cloudinary");
 
-module.exports = (client) => {
+module.exports = () => {
     cloudinary.api.ping()
         .then(() => {
             console.log("✅ Cloudinary connecté !");
