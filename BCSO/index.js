@@ -1,8 +1,10 @@
+require('dotenv').config();
+
 const { Client, GatewayIntentBits } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
-const token = process.env.TOKEN_BCSO; 
+const token = process.env.TOKEN_BCSO;
 
 const client = new Client({ 
     intents: [
@@ -15,31 +17,46 @@ const client = new Client({
 // 🔄 Fonction d'auto-chargement 100% modulaire
 const loadFiles = (dir) => {
     const dirPath = path.join(__dirname, dir);
-    if (!fs.existsSync(dirPath)) return; // Si le dossier n'existe pas encore, on ignore
-    
+
+    if (!fs.existsSync(dirPath)) return;
+
     const files = fs.readdirSync(dirPath, { withFileTypes: true });
+
     for (const file of files) {
         if (file.isDirectory()) {
-            loadFiles(`${dir}/${file.name}`); // Fouille dans les sous-dossiers
-        } else if (file.name.endsWith('.js')) {
-            const module = require(`./${dir}/${file.name}`);
-            if (typeof module === 'function') {
-                module(client); // Exécute le module en lui passant le client
+            loadFiles(`${dir}/${file.name}`);
+        } 
+        else if (file.name.endsWith('.js')) {
+            const modulePath = `./${dir}/${file.name}`;
+
+            try {
+                const module = require(modulePath);
+
+                if (typeof module === 'function') {
+                    module(client);
+                }
+
+            } catch (error) {
+                console.error(`❌ Erreur chargement ${modulePath}:`, error);
             }
         }
     }
 };
 
-// Charge tout automatiquement !
+// Charge automatiquement les events et modules
 loadFiles('events');
 loadFiles('modules');
 
 if (!token) {
     console.error("❌ [Bot BCSO] CRASH : Le TOKEN_BCSO est introuvable !");
     process.exit(1);
-} else {
-    client.login(token).catch(err => {
-        console.error("❌ [Bot BCSO] Erreur :", err);
+}
+
+client.login(token)
+    .then(() => {
+        console.log("✅ [Bot BCSO] Connecté avec succès !");
+    })
+    .catch(err => {
+        console.error("❌ [Bot BCSO] Erreur connexion :", err);
         process.exit(1);
     });
-}
