@@ -6,7 +6,7 @@ module.exports = {
 
     // ☁️ Cloudinary
     cloudinary: {
-        cloudName: "chadoxx",
+        cloudName: "m8nsmslx",
         apiKey: "284719725247594",
         apiSecret: "rBArt6gG7JSQOkupNyM78GFg9VQ"
     },
