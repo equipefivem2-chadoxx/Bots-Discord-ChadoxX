@@ -10,15 +10,21 @@ module.exports = (client) => {
         try {
             const guild = interaction.guild;
             
-            // On récupère le pseudo spécifique au serveur (RP name)
-            const pseudoServeur = interaction.member.displayName;
+            // On récupère le pseudo spécifique au serveur (RP name) ou son username de base
+            const pseudoServeur = interaction.member.displayName || interaction.user.username;
             
             // On remplace les espaces par des tirets, et on supprime les caractères non autorisés
-            const cleanName = pseudoServeur.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+            let cleanName = pseudoServeur.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+
+            // 🚀 SÉCURITÉ : Si le pseudo ne contenait que des émojis, cleanName est vide. On force un nom.
+            if (!cleanName || cleanName === "") {
+                cleanName = `agent-${interaction.user.id.slice(-4)}`;
+            }
 
             const channelPermissions = [
                 {
-                    id: guild.id,
+                    // 🚀 CORRECTION MAJEURE : On utilise everyone.id pour Discord.js v14
+                    id: guild.roles.everyone.id,
                     deny: [PermissionsBitField.Flags.ViewChannel],
                 },
                 {
@@ -27,14 +33,17 @@ module.exports = (client) => {
                 }
             ];
 
-            config.allowedRolesCommand.forEach(roleId => {
-                if (roleId && roleId !== "ID_DU_ROLE_2") {
-                    channelPermissions.push({
-                        id: roleId,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles],
-                    });
-                }
-            });
+            if (config.allowedRolesCommand && Array.isArray(config.allowedRolesCommand)) {
+                config.allowedRolesCommand.forEach(roleId => {
+                    // Sécurité pour vérifier que l'ID n'est pas "ID_DU_ROLE_2" et est bien valide
+                    if (roleId && roleId.length > 10) {
+                        channelPermissions.push({
+                            id: roleId,
+                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles],
+                        });
+                    }
+                });
+            }
 
             // Création du salon
             const ticketChannel = await guild.channels.create({
@@ -113,7 +122,7 @@ Compte-rendu :`;
 
         } catch (error) {
             console.error("❌ ERREUR CRÉATION TICKET :", error);
-            await interaction.editReply({ content: `❌ Erreur lors de la création du ticket. Vérifie tes configurations.` });
+            await interaction.editReply({ content: `❌ Erreur lors de la création du ticket. L'API Discord a bloqué la requête (vérifie les permissions et IDs).` });
         }
     });
 };
