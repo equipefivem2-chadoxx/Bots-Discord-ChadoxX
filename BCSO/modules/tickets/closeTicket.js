@@ -1,6 +1,7 @@
 const axios = require('axios');
 const config = require('../../config.js');
 const discordTranscripts = require('discord-html-transcripts');
+const cloudinary = require('../cloudinary/cloudinary.js'); // 🚀 L'import de ton nouveau module
 
 module.exports = (client) => {
     client.on('interactionCreate', async (interaction) => {
@@ -13,19 +14,19 @@ module.exports = (client) => {
             const archiveChannel = interaction.guild.channels.cache.get(config.archiveChannelId);
 
             if (!archiveChannel) {
-                return interaction.editReply({ content: "❌ Salon d'archive Discord introuvable dans la config." });
+                return interaction.editReply({ content: "❌ Salon d'archive Discord introuvable." });
             }
 
-            await interaction.editReply({ content: "⏳ Analyse et téléchargement des preuves en cours..." });
+            await interaction.editReply({ content: "⏳ Analyse du dossier et upload Cloudinary en cours..." });
 
             let allMessages = [];
 
-            // 1. On récupère les messages du salon principal
+            // 1. Récupération des messages principaux
             const mainMessages = await channel.messages.fetch({ limit: 100 });
             const sortedMain = Array.from(mainMessages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
             allMessages.push(...sortedMain);
 
-            // 🚀 DÉTECTION DU CRÉATEUR
+            // DÉTECTION DU CRÉATEUR
             let creatorName = channel.topic;
             if (!creatorName) {
                 const firstMsg = sortedMain.find(m => m.content.includes("a ouvert un dossier d'opération"));
@@ -36,7 +37,7 @@ module.exports = (client) => {
                 }
             }
 
-            // 2. On récupère les fils (Threads)
+            // 2. Récupération des fils (Threads)
             const fetchedThreads = await channel.threads.fetch();
             for (const [threadId, thread] of fetchedThreads.threads) {
                 const separatorMsg = await channel.send({
@@ -49,34 +50,47 @@ module.exports = (client) => {
                 allMessages.push(...sortedThread);
             }
 
-            // 3. 🚀 SÉCURITÉ ABSOLUE : Téléchargement et encodage des images en Base64
+            // 3. 🚀 EXTRACTION ET UPLOAD SUR CLOUDINARY
             const formattedMessages = [];
             
             for (const msg of allMessages) {
                 let content = msg.content ? msg.content.trim() : '';
-                let base64Images = [];
+                let imageUrls = [];
                 
                 if (msg.attachments.size > 0) {
                     const attachments = Array.from(msg.attachments.values());
                     for (const att of attachments) {
-                        // On ne traite que les images
                         if (att.contentType && att.contentType.startsWith('image/')) {
                             try {
-                                // On télécharge l'image depuis Discord avant de supprimer le salon
+                                // On télécharge l'image depuis Discord...
                                 const response = await axios.get(att.url, { responseType: 'arraybuffer' });
-                                const base64Data = Buffer.from(response.data, 'binary').toString('base64');
-                                const dataUri = `data:${att.contentType};base64,${base64Data}`;
-                                base64Images.push(dataUri);
+                                const buffer = Buffer.from(response.data, 'binary');
+                                
+                                // ... Puis on l'uploade immédiatement sur Cloudinary
+                                const cloudinaryResult = await new Promise((resolve, reject) => {
+                                    const uploadStream = cloudinary.uploader.upload_stream(
+                                        { folder: "bcso_preuves" }, // Crée un dossier propre sur ton Cloudinary
+                                        (error, result) => {
+                                            if (result) resolve(result);
+                                            else reject(error);
+                                        }
+                                    );
+                                    uploadStream.end(buffer);
+                                });
+
+                                // On récupère le lien sécurisé (https) de Cloudinary
+                                imageUrls.push(cloudinaryResult.secure_url);
+                                
                             } catch (imgError) {
-                                console.error(`Erreur téléchargement image : ${att.url}`, imgError.message);
+                                console.error(`❌ Erreur Upload Cloudinary :`, imgError);
                             }
                         }
                     }
                 }
 
-                // On attache les images sous format "[IMAGE] data:image/png;base64,....."
-                if (base64Images.length > 0) {
-                    content = content ? `${content} [IMAGE] ${base64Images.join(' ')}` : `[IMAGE] ${base64Images.join(' ')}`;
+                // On attache les liens Cloudinary au message : "[IMAGE] https://res.cloudinary.com/..."
+                if (imageUrls.length > 0) {
+                    content = content ? `${content} [IMAGE] ${imageUrls.join(' ')}` : `[IMAGE] ${imageUrls.join(' ')}`;
                 }
 
                 if (content !== '') {
@@ -89,19 +103,16 @@ module.exports = (client) => {
                 }
             }
 
-            await interaction.editReply({ content: "⏳ Création des fichiers de sauvegarde..." });
+            await interaction.editReply({ content: "⏳ Finalisation de la sauvegarde HTML..." });
 
-            // 4. Génération de l'archive HTML Discord (Images incluses ou allégée)
+            // 4. Archive HTML Discord classique
             const transcript = await discordTranscripts.generateFromMessages(allMessages, channel, {
-                returnBuffer: false,
-                filename: `${channel.name}.html`,
-                saveImages: true,
-                poweredBy: false
+                returnBuffer: false, filename: `${channel.name}.html`, saveImages: true, poweredBy: false
             });
 
             try {
                 await archiveChannel.send({
-                    content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>\n*Sauvegarde de sécurité Discord.*`,
+                    content: `📁 **Archive du dossier :** ${channel.name}\nFermé par : <@${interaction.user.id}>`,
                     files: [transcript]
                 });
             } catch (sendError) {
@@ -110,13 +121,13 @@ module.exports = (client) => {
                         returnBuffer: false, filename: `LIGHT-${channel.name}.html`, saveImages: false, poweredBy: false
                     });
                     await archiveChannel.send({
-                        content: `⚠️ Fichier d'origine trop lourd. Voici la version "Allégée".\n📁 **Archive :** ${channel.name}`,
+                        content: `⚠️ Fichier d'origine trop lourd. Version "Allégée".\n📁 **Archive :** ${channel.name}`,
                         files: [lightTranscript]
                     });
                 }
             }
 
-            // 5. Envoi vers l'API du Site Web (Maintenant l'API reçoit les images en "dur")
+            // 5. Envoi vers le Site Web (Payload ultra-léger, seulement du texte et des URLs)
             const payload = {
                 ticketId: channel.id,
                 channelName: channel.name,
@@ -126,20 +137,17 @@ module.exports = (client) => {
                 messages: formattedMessages
             };
 
-            await interaction.editReply({ content: "⏳ Synchronisation avec la base de données..." });
+            await interaction.editReply({ content: "⏳ Synchronisation de l'API web..." });
 
             await axios.post('https://bcso-noface.up.railway.app/api/tickets/transcript', payload);
             
-            await interaction.editReply({ content: "✅ Dossier archivé (Preuves sécurisées à vie). Suppression dans 3s..." });
+            await interaction.editReply({ content: "✅ Opération terminée avec succès. Fermeture du dossier..." });
 
-            setTimeout(() => {
-                channel.delete().catch(err => console.error("Erreur suppression:", err));
-            }, 3000);
+            setTimeout(() => { channel.delete().catch(() => {}); }, 3000);
 
         } catch (error) {
             console.error("❌ Erreur de clôture:", error);
-            await interaction.channel.send("⚠️ **Alerte Serveur Central :** Erreur lors de la fermeture du dossier. (Taille des preuves potentiellement trop lourde)");
-            await interaction.editReply({ content: "❌ Échec de la fermeture." }).catch(() => {});
+            await interaction.editReply({ content: "❌ Une erreur est survenue. Les preuves étaient peut-être trop volumineuses." }).catch(() => {});
         }
     });
 };
