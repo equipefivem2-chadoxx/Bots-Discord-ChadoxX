@@ -48,13 +48,13 @@ module.exports = {
             if (action === 'add') {
                 await interaction.member.roles.add(role);
                 await interaction.reply({
-                    content: `✅ Le rôle \`${role.name}\` t'a été ajouté en toute discrétion.`,
+                    content: `✅ Le rôle \`${role.name}\` t'a été ajouté.`,
                     ephemeral: true
                 });
             } else {
                 await interaction.member.roles.remove(role);
                 await interaction.reply({
-                    content: `🗑️ Le rôle \`${role.name}\` t'a été retiré en toute discrétion.`,
+                    content: `🗑️ Le rôle \`${role.name}\` t'a été retiré.`,
                     ephemeral: true
                 });
             }
