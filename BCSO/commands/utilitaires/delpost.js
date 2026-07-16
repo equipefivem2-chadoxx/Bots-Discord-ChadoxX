@@ -4,10 +4,10 @@ const config = require('../../config.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('delpost')
-        .setDescription('Supprime un message à partir de son lien (Réservé au créateur du bot).')
+        .setDescription('Supprime un post de forum ou un message à partir de son lien (Réservé au créateur).')
         .addStringOption(option => 
             option.setName('lien')
-                .setDescription('Le lien complet du message à supprimer')
+                .setDescription('Le lien complet du post (forum) ou du message à supprimer')
                 .setRequired(true)
         ),
         
@@ -22,39 +22,60 @@ module.exports = {
 
         const url = interaction.options.getString('lien');
 
-        // Expression régulière pour capturer le salon et l'ID du message depuis un lien Discord
-        const discordLinkRegex = /https:\/\/discord\.com\/channels\/\d+\/(\d+)\/(\d+)/;
+        // Regex améliorée : capture l'ID du salon/post et rend l'ID du message optionnel
+        const discordLinkRegex = /https:\/\/discord\.com\/channels\/\d+\/(\d+)(?:\/(\d+))?/;
         const match = url.match(discordLinkRegex);
 
         if (!match) {
             return interaction.reply({ 
-                content: "❌ Le lien fourni n'est pas un lien de message Discord valide.", 
+                content: "❌ Le lien fourni n'est pas un lien Discord valide (salon, post ou message).", 
                 ephemeral: true 
             });
         }
 
-        const [, channelId, messageId] = match;
+        const [, targetId, messageId] = match;
 
         // On lance une réponse différée et éphémère (visible uniquement par toi)
         await interaction.deferReply({ ephemeral: true });
 
         try {
-            // 2. Récupération du salon cible
-            const channel = await interaction.client.channels.fetch(channelId);
-            if (!channel || !channel.isTextBased()) {
+            // Récupération de l'entité Discord (Salon, Thread ou Post)
+            const target = await interaction.client.channels.fetch(targetId);
+            
+            if (!target) {
                 return interaction.editReply({ 
-                    content: "❌ Impossible d'accéder au salon ciblé (ou ce n'est pas un salon textuel)." 
+                    content: "❌ Impossible de trouver le salon ou le post lié à ce lien." 
                 });
             }
 
-            // 3. Récupération et suppression du message
-            const message = await channel.messages.fetch(messageId);
-            await message.delete();
-
-            // 4. Confirmation invisible et autodestruction
-            await interaction.editReply({ 
-                content: "🗑️ Le message a été supprimé avec succès ! Nettoyage des traces..." 
-            });
+            // CAS 1 : C'est un Thread (donc un Post de Forum ou un fil de discussion)
+            if (target.isThread()) {
+                await target.delete();
+                await interaction.editReply({ 
+                    content: "🗑️ Le post de forum a été entièrement supprimé ! Nettoyage..." 
+                });
+            } 
+            
+            // CAS 2 : C'est un salon textuel classique
+            else if (target.isTextBased()) {
+                // Si on a un ID de message, on supprime uniquement le message
+                if (messageId) {
+                    const message = await target.messages.fetch(messageId);
+                    await message.delete();
+                    await interaction.editReply({ 
+                        content: "🗑️ Le message a été supprimé avec succès ! Nettoyage..." 
+                    });
+                } else {
+                    // Sécurité critique : Évite de supprimer un salon textuel entier par accident
+                    return interaction.editReply({ 
+                        content: "⚠️ Par sécurité, je ne peux pas supprimer un salon textuel complet. S'il s'agit d'un post de forum, copie bien le lien du post lui-même." 
+                    });
+                }
+            } else {
+                return interaction.editReply({ 
+                    content: "❌ Ce type de salon n'est pas pris en charge." 
+                });
+            }
 
             // Supprime la notification éphémère après 1.5 seconde pour un clean absolu
             setTimeout(async () => {
@@ -64,8 +85,8 @@ module.exports = {
         } catch (error) {
             console.error("❌ Erreur lors de l'exécution de delpost :", error);
             await interaction.editReply({ 
-                content: "⚠️ Impossible de supprimer le message. Vérifie que le message existe toujours et que j'ai les permissions d'administration requises." 
-                });
+                content: "⚠️ Impossible d'exécuter la suppression. Vérifie que l'élément existe encore et que j'ai les permissions requises." 
+            });
         }
     }
 };
