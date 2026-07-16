@@ -1,4 +1,7 @@
 module.exports = {
+
+    ownerId: "123456789012345678",
+    
     // 🔴 IDs du Serveur
     guildId: "1427651123606589442",
     ticketCategoryId: "1427847738665472030",
