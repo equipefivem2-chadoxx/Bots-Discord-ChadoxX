@@ -11,7 +11,6 @@ module.exports = {
         ),
         
     async execute(interaction, client) {
-        // On fait patienter l'interaction car le scan peut prendre quelques secondes
         await interaction.deferReply({ ephemeral: true });
 
         const messageId = interaction.options.getString('message_id');
@@ -25,25 +24,33 @@ module.exports = {
             const message = await channel.messages.fetch(messageId);
             if (!message) return interaction.editReply("❌ Message introuvable avec cet ID.");
 
-            // Extraction de la date (même regex assouplie que précédemment)
+            // Filtre strict : on ne scanne que si la date est trouvée
             const dateMatch = message.content.match(/ROLL CALL DU (\d{2}\/\d{2}\/\d{2})/i);
-            if (!dateMatch) return interaction.editReply("❌ Ce message ne contient pas de date valide (ex: ROLL CALL DU 23/07/26).");
+            if (!dateMatch) return interaction.editReply("❌ Ce message n'est pas une annonce officielle de Roll Call.");
             
             const dateRollCall = dateMatch[1];
-            
             const EMOJIS_STATUS = { '✅': 'present', '⏳': 'retard', '❌': 'absent' };
             let count = 0;
 
-            // Parcours de toutes les réactions du message
             for (const [reactionId, reaction] of message.reactions.cache) {
                 const emojiName = reaction.emoji.name;
                 
                 if (EMOJIS_STATUS[emojiName]) {
                     const status = EMOJIS_STATUS[emojiName];
-                    const users = await reaction.users.fetch();
+                    
+                    // 🚀 NOUVEAU : Boucle pour forcer la récupération de TOUS les utilisateurs, sans limite de cache
+                    let fetchedUsers = [];
+                    let lastId;
+                    while (true) {
+                        const options = { limit: 100 };
+                        if (lastId) options.after = lastId;
+                        const batch = await reaction.users.fetch(options);
+                        if (batch.size === 0) break;
+                        fetchedUsers.push(...batch.values());
+                        lastId = batch.last().id;
+                    }
 
-                    // Envoi à l'API pour chaque utilisateur ayant cliqué
-                    for (const [userId, user] of users) {
+                    for (const user of fetchedUsers) {
                         if (user.bot) continue;
 
                         try {
@@ -64,7 +71,7 @@ module.exports = {
                 }
             }
 
-            await interaction.editReply(`✅ Synchronisation terminée ! ${count} réactions envoyées au site pour le **${dateRollCall}**.`);
+            await interaction.editReply(`✅ Synchronisation parfaite ! ${count} réactions envoyées au site pour le **${dateRollCall}**.`);
 
         } catch (error) {
             console.error("❌ Erreur commande sync-rollcall :", error);

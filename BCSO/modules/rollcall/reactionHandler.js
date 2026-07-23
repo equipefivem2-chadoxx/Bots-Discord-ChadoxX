@@ -3,50 +3,62 @@ module.exports = (client) => {
     const ROLLCALL_CHANNEL_ID = '1427731201761743021';
     const API_URL = 'https://bcso-noface.up.railway.app/api/rollcall/update';
 
-    // Correspondance entre l'emoji cliqué et le statut sur le site
     const EMOJIS_STATUS = {
         '✅': 'present',
         '⏳': 'retard',
         '❌': 'absent'
     };
 
-    // 🚀 FONCTION PRINCIPALE DE TRAITEMENT
-    const handleReaction = async (reaction, user, action) => {
-        if (user.bot) return; // On ignore les réactions du bot lui-même
+    // 🚀 NOUVEAU : AUTO-RÉACTION SUR LES NOUVELLES ANNONCES
+    client.on('messageCreate', async (message) => {
+        // On vérifie qu'on est dans le bon salon et que ce n'est pas le bot qui parle
+        if (message.channelId !== ROLLCALL_CHANNEL_ID || message.author.bot) return;
 
-        // Système de cache (Partials) pour lire les anciens messages
+        // Filtre STRICT : On cherche exactement la phrase avec la date
+        const dateMatch = message.content.match(/ROLL CALL DU (\d{2}\/\d{2}\/\d{2})/i);
+        
+        // Si c'est bien une annonce valide, le bot met les réactions tout seul
+        if (dateMatch) {
+            try {
+                await message.react('✅');
+                await message.react('❌');
+                await message.react('⏳');
+            } catch (error) {
+                console.error("[RollCall Bot] ❌ Erreur lors de l'ajout automatique des réactions:", error);
+            }
+        }
+    });
+
+    // 🚀 FONCTION PRINCIPALE DE TRAITEMENT (CLICS)
+    const handleReaction = async (reaction, user, action) => {
+        if (user.bot) return; 
+
         if (reaction.partial) {
-            try { await reaction.fetch(); } 
-            catch (error) { console.error('Erreur fetch reaction:', error); return; }
+            try { await reaction.fetch(); } catch (error) { return; }
         }
         if (reaction.message.partial) {
-            try { await reaction.message.fetch(); } 
-            catch (error) { console.error('Erreur fetch message:', error); return; }
+            try { await reaction.message.fetch(); } catch (error) { return; }
         }
 
-        // On ignore si ce n'est pas dans le bon salon
         if (reaction.message.channelId !== ROLLCALL_CHANNEL_ID) return;
 
-        // Extraction de la date du message (cherche le format **ROLL CALL DU JJ/MM/AA**)
+        // FILTRE STRICT : Si le message ne contient pas ça, le clic est ignoré
         const messageContent = reaction.message.content;
-        const dateMatch = messageContent.match(/\*\*ROLL CALL DU (\d{2}\/\d{2}\/\d{2})\*\*/i);
-        
-        // Si le message n'est pas un message de roll call valide, on annule
+        const dateMatch = messageContent.match(/ROLL CALL DU (\d{2}\/\d{2}\/\d{2})/i);
         if (!dateMatch) return; 
         
         const dateRollCall = dateMatch[1];
         const emojiName = reaction.emoji.name;
 
-        // Définir le statut final à envoyer au site
         let status;
         if (action === 'add') {
-            if (!EMOJIS_STATUS[emojiName]) return; // L'agent a cliqué sur un emoji non géré
+            if (!EMOJIS_STATUS[emojiName]) return; 
             status = EMOJIS_STATUS[emojiName];
         } else {
-            status = 'remove'; // L'agent a retiré sa réaction
+            status = 'remove'; 
         }
 
-        // 📡 ENVOI DE LA REQUÊTE AU SITE WEB
+        // ENVOI À L'API
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -58,17 +70,14 @@ module.exports = (client) => {
                 })
             });
 
-            if (!response.ok) {
-                console.error(`[RollCall Bot] ❌ Erreur API: HTTP ${response.status}`);
-            } else {
-                console.log(`[RollCall Bot] ✅ Agent ${user.username} marqué comme ${status} pour le ${dateRollCall}`);
-            }
+            if (!response.ok) console.error(`[RollCall Bot] ❌ Erreur API: HTTP ${response.status}`);
+            else console.log(`[RollCall Bot] ✅ ${user.username} -> ${status} (${dateRollCall})`);
         } catch (error) {
             console.error("[RollCall Bot] ❌ Impossible de joindre le site web:", error.message);
         }
     };
 
-    // 🎧 ÉCOUTEURS D'ÉVÉNEMENTS
+    // 🎧 ÉCOUTEURS
     client.on('messageReactionAdd', (reaction, user) => handleReaction(reaction, user, 'add'));
     client.on('messageReactionRemove', (reaction, user) => handleReaction(reaction, user, 'remove'));
 };
