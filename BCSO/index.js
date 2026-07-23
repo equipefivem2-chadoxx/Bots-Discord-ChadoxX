@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -10,8 +10,15 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ] 
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessageReactions // 🚀 Obligatoire pour écouter les réactions
+    ],
+    partials: [
+        Partials.Message, 
+        Partials.Channel, 
+        Partials.Reaction, 
+        Partials.User // 🚀 Obligatoire pour capter les réactions sur les anciens messages de roll call
+    ]
 });
 
 // 🔄 Fonction d'auto-chargement 100% modulaire
