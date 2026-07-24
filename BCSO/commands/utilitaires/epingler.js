@@ -4,10 +4,10 @@ const config = require('../../config.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('epingler')
-        .setDescription('Épingle un post de forum ou un message à partir de son lien.')
+        .setDescription('Épingle un post de forum tout en haut du salon.')
         .addStringOption(option => 
             option.setName('lien')
-                .setDescription('Le lien complet du post (forum) ou du message à épingler')
+                .setDescription('Le lien complet du post de forum à épingler')
                 .setRequired(true)
         ),
         
@@ -20,69 +20,45 @@ module.exports = {
             });
         }
 
-        // On récupère le lien et on nettoie
+        // On récupère le lien et on nettoie les espaces invisibles avant et après
         const url = interaction.options.getString('lien').trim();
 
-        // Regex pour isoler l'ID du salon/thread et du message
-        const discordLinkRegex = /channels\/\d+\/(\d+)(?:\/(\d+))?/;
+        // Regex pour récupérer l'ID du post (qui est considéré comme un channel par Discord)
+        const discordLinkRegex = /channels\/\d+\/(\d+)/;
         const match = url.match(discordLinkRegex);
 
         if (!match) {
             return interaction.reply({ 
-                content: `❌ Le lien fourni n'est pas reconnu. Assure-toi d'avoir bien fait "Copier le lien".`, 
+                content: `❌ Le lien fourni n'est pas reconnu. Assure-toi d'avoir bien fait clic droit -> "Copier le lien" sur le post.`, 
                 ephemeral: true 
             });
         }
 
-        const [, targetId, messageId] = match;
+        const targetId = match[1];
 
         await interaction.deferReply({ ephemeral: true });
 
         try {
-            // Récupération de l'entité Discord (Salon, Thread ou Post)
+            // Récupération de l'entité Discord (le post de forum / thread)
             const target = await interaction.client.channels.fetch(targetId);
             
             if (!target) {
                 return interaction.editReply({ 
-                    content: "❌ Impossible de trouver le salon ou le post lié à ce lien." 
+                    content: "❌ Impossible de trouver le post lié à ce lien." 
                 });
             }
 
-            // CAS 1 : C'est un Thread (Post de Forum ou fil de discussion)
+            // On s'assure que c'est bien un post de forum (Thread)
             if (target.isThread()) {
-                if (messageId) {
-                    // Si un message précis dans le thread est ciblé
-                    const message = await target.messages.fetch(messageId);
-                    await message.pin();
-                } else {
-                    // C'est le post de forum en entier : on épingle son message d'origine
-                    const starterMessage = await target.fetchStarterMessage();
-                    if (starterMessage) {
-                        await starterMessage.pin();
-                    }
-                }
+                // Modification des paramètres du post : Le chiffre 2 (bit 1 << 1) correspond au statut "Pinned" (Épinglé) dans l'API Discord
+                await target.edit({ flags: target.flags.bitfield | 2 });
                 
                 await interaction.editReply({ 
-                    content: "📌 Le post a été épinglé avec succès !" 
+                    content: "📌 Le post a bien été épinglé tout en haut du forum !" 
                 });
-            } 
-            
-            // CAS 2 : C'est un salon textuel classique
-            else if (target.isTextBased()) {
-                if (messageId) {
-                    const message = await target.messages.fetch(messageId);
-                    await message.pin();
-                    await interaction.editReply({ 
-                        content: "📌 Le message a été épinglé avec succès !" 
-                    });
-                } else {
-                    return interaction.editReply({ 
-                        content: "⚠️ Le lien pointe vers un salon entier. Copie le lien d'un message spécifique." 
-                    });
-                }
             } else {
                 return interaction.editReply({ 
-                    content: "❌ Ce type de salon n'est pas pris en charge." 
+                    content: "⚠️ Le lien ne pointe pas vers un post de forum valide. Assure-toi de copier le lien global du post." 
                 });
             }
 
@@ -94,7 +70,7 @@ module.exports = {
         } catch (error) {
             console.error("❌ Erreur lors de l'exécution de epingler :", error);
             await interaction.editReply({ 
-                content: "⚠️ Impossible d'exécuter l'épinglage. Vérifie que le message existe et que j'ai la permission 'Gérer les messages'." 
+                content: "⚠️ Impossible d'exécuter l'épinglage. Vérifie que j'ai bien la permission 'Gérer les fils de discussion/salons'." 
             });
         }
     }
